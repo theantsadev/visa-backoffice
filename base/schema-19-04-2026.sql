@@ -1,0 +1,126 @@
+CREATE TABLE type_visa(
+   id_type_visa SERIAL,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(id_type_visa)
+);
+
+CREATE TABLE statut_familial(
+   id_statut_familial INTEGER,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(id_statut_familial)
+);
+
+CREATE TABLE type_demande_effectuee(
+   id_type_demande_effectuee SERIAL,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(id_type_demande_effectuee)
+);
+
+CREATE TABLE nationnalite(
+   id_nationnalite SERIAL,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(id_nationnalite)
+);
+
+CREATE TABLE statut_demande(
+   statut_demande SERIAL,
+   libelle VARCHAR(50) ,
+   PRIMARY KEY(statut_demande)
+);
+
+CREATE TABLE piece_a_fournir(
+   id_piece_a_fournir SERIAL,
+   nom VARCHAR(50) ,
+   obligatoire BOOLEAN DEFAULT TRUE,
+   id_type_demande_effectuee INTEGER,
+   id_type_visa INTEGER,
+   PRIMARY KEY(id_piece_a_fournir),
+   FOREIGN KEY(id_type_demande_effectuee) REFERENCES type_demande_effectuee(id_type_demande_effectuee),
+   FOREIGN KEY(id_type_visa) REFERENCES type_visa(id_type_visa)
+);
+
+CREATE TABLE demandeur(
+   id_demandeur SERIAL,
+   nom VARCHAR(50)  NOT NULL,
+   prenom VARCHAR(50) ,
+   date_naissance DATE NOT NULL,
+   nom_jeune_fille VARCHAR(50) ,
+   adresse_mada TEXT,
+   telephone VARCHAR(50)  NOT NULL,
+   email VARCHAR(50) ,
+   id_nationnalite INTEGER NOT NULL,
+   id_statut_familial INTEGER NOT NULL,
+   PRIMARY KEY(id_demandeur),
+   FOREIGN KEY(id_nationnalite) REFERENCES nationnalite(id_nationnalite),
+   FOREIGN KEY(id_statut_familial) REFERENCES statut_familial(id_statut_familial)
+);
+
+CREATE TABLE passport(
+   id_passport SERIAL,
+   numero VARCHAR(50) ,
+   date_delivrance DATE,
+   date_expiration DATE,
+   id_demandeur INTEGER NOT NULL,
+   PRIMARY KEY(id_passport),
+   FOREIGN KEY(id_demandeur) REFERENCES demandeur(id_demandeur)
+);
+
+CREATE TABLE visa(
+   id_visa SERIAL,
+   reference_visa VARCHAR(50) ,
+   date_fin DATE,
+   date_debut DATE,
+   id_type_visa INTEGER NOT NULL,
+   id_passport INTEGER NOT NULL,
+   PRIMARY KEY(id_visa),
+   FOREIGN KEY(id_type_visa) REFERENCES type_visa(id_type_visa),
+   FOREIGN KEY(id_passport) REFERENCES passport(id_passport)
+);
+
+CREATE TABLE visa_transformable(
+   id_visa_transformable SERIAL,
+   reference_visa VARCHAR(50) ,
+   date_entree_mada DATE,
+   lieu_entree_mada VARCHAR(50) ,
+   date_sortie DATE,
+   id_passport INTEGER NOT NULL,
+   id_demandeur INTEGER NOT NULL,
+   PRIMARY KEY(id_visa_transformable),
+   FOREIGN KEY(id_passport) REFERENCES passport(id_passport),
+   FOREIGN KEY(id_demandeur) REFERENCES demandeur(id_demandeur)
+);
+
+CREATE TABLE demande_effectuee(
+   id_demande_effectuee SERIAL,
+   date_demande TIMESTAMP,
+   id_passport INTEGER NOT NULL,
+   id_visa_transformable INTEGER,
+   id_demandeur INTEGER NOT NULL,
+   id_type_demande_effectuee INTEGER NOT NULL,
+   id_type_visa INTEGER NOT NULL,
+   PRIMARY KEY(id_demande_effectuee),
+   FOREIGN KEY(id_passport) REFERENCES passport(id_passport),
+   FOREIGN KEY(id_visa_transformable) REFERENCES visa_transformable(id_visa_transformable),
+   FOREIGN KEY(id_demandeur) REFERENCES demandeur(id_demandeur),
+   FOREIGN KEY(id_type_demande_effectuee) REFERENCES type_demande_effectuee(id_type_demande_effectuee),
+   FOREIGN KEY(id_type_visa) REFERENCES type_visa(id_type_visa)
+);
+
+CREATE TABLE piece_jointe(
+   id_piece_jointe SERIAL,
+   fournie BOOLEAN,
+   id_piece_a_fournir INTEGER NOT NULL,
+   id_demande_effectuee INTEGER NOT NULL,
+   PRIMARY KEY(id_piece_jointe),
+   FOREIGN KEY(id_piece_a_fournir) REFERENCES piece_a_fournir(id_piece_a_fournir),
+   FOREIGN KEY(id_demande_effectuee) REFERENCES demande_effectuee(id_demande_effectuee)
+);
+
+CREATE TABLE historique_statut_demande(
+   id_demande_effectuee INTEGER,
+   statut_demande INTEGER,
+   date_heure_historique TIMESTAMP,
+   PRIMARY KEY(id_demande_effectuee, statut_demande),
+   FOREIGN KEY(id_demande_effectuee) REFERENCES demande_effectuee(id_demande_effectuee),
+   FOREIGN KEY(statut_demande) REFERENCES statut_demande(statut_demande)
+);
