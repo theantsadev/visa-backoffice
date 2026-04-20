@@ -77,7 +77,7 @@ Ces données sont insérées une seule fois au démarrage du projet.
 
 ---
 
-## 👷 Jordi
+## 👷 Vicky
 
 ### Fonctionnalité 1 — Saisie d'une demande (nouveau titre)
 `branche : sprint-1-saisie-demande`
