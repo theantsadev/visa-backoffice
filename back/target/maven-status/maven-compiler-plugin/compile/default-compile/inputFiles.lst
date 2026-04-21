@@ -2,6 +2,7 @@ D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\Passpo
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\StatutDemande.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\GestionVisa.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\Demandeur.java
+D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\repository\SituationFamilialeRepository.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\DemandeEffectue.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\metier\dto\VisaTransformableDTO.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\Nationnalite.java
@@ -10,5 +11,8 @@ D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\metier\dto\D
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\TypeVisa.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\metier\dto\DemandeurDTO.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\metier\dto\PassportDTO.java
+D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\repository\NationnaliteRepository.java
+D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\metier\DemandeurService.java
+D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\repository\DemandeurRepository.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\SituationFamiliale.java
 D:\Projet cloud\visa-backoffice\back\src\main\java\com\example\demo\model\VisaTransformable.java
