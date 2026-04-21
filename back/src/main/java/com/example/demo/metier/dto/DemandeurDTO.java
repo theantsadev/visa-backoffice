@@ -13,6 +13,6 @@ public class DemandeurDTO {
     private String adresseMada;
     private String telephone;
     private String email;
-    private Long idNationalite;
-    private Long idStatutFamilial;
+    private Integer idNationalite;
+    private Integer idStatutFamilial;
 }

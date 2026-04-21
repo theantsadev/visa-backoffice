@@ -32,7 +32,7 @@ public class VisaTransformableService {
             throw new IllegalArgumentException("L'id du passeport est obligatoire.");
         }
 
-        Passport passport = passportRepository.findById(idPassport.longValue())
+        Passport passport = passportRepository.findById(idPassport)
                 .orElseThrow(() -> new IllegalArgumentException("Passeport introuvable pour id=" + idPassport));
 
         if (isBlank(dto.getReferenceVisa())) {
@@ -45,9 +45,11 @@ public class VisaTransformableService {
 
         VisaTransformable visa = new VisaTransformable();
         visa.setReferenceVisa(dto.getReferenceVisa().trim());
-        visa.setDateEntreMada(dto.getDateEntreeMada());
+        visa.setDateEntreeMada(dto.getDateEntreeMada());
+        visa.setLieuEntreeMada(dto.getLieuEntreeMada());
         visa.setDateSortie(dto.getDateSortie());
         visa.setPassport(passport);
+        visa.setDemandeur(passport.getDemandeur());
 
         return visaTransformableRepository.save(visa);
     }

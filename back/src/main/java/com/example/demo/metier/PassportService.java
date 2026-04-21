@@ -30,7 +30,7 @@ public class PassportService {
             throw new IllegalArgumentException("L'id du demandeur est obligatoire.");
         }
 
-        Demandeur demandeur = demandeurRepository.findById(idDemandeur.longValue())
+        Demandeur demandeur = demandeurRepository.findById(idDemandeur)
                 .orElseThrow(() -> new IllegalArgumentException("Demandeur introuvable pour id=" + idDemandeur));
 
         if (isBlank(dto.getNumero())) {
@@ -44,7 +44,7 @@ public class PassportService {
 
         Passport passport = new Passport();
         passport.setNumero(dto.getNumero().trim());
-        passport.setDateDelivrence(dto.getDateDelivrance());
+        passport.setDateDelivrance(dto.getDateDelivrance());
         passport.setDateExpiration(dto.getDateExpiration());
         passport.setDemandeur(demandeur);
 

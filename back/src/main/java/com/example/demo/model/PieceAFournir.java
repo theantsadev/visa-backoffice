@@ -16,7 +16,7 @@ public class PieceAFournir {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_piece_a_fournir")
-    private Long id;
+    private Integer id;
 
     @Column(name = "nom")
     private String nom;
@@ -25,8 +25,8 @@ public class PieceAFournir {
     private Boolean obligatoire;
 
     @Column(name = "id_type_demande_effectuee")
-    private Long idTypeDemandeEffectuee;
+    private Integer idTypeDemandeEffectuee;
 
     @Column(name = "id_type_visa")
-    private Long idTypeVisa;
+    private Integer idTypeVisa;
 }

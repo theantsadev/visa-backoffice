@@ -3,14 +3,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "situation_familiale")
+@Table(name = "statut_familial")
 @Data
 
 public class SituationFamiliale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_situation_familiale")
-    private Long id;
+    @Column(name = "id_statut_familial")
+    private Integer id;
 
     private String libelle;
 }

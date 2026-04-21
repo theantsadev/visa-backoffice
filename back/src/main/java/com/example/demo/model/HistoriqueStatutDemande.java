@@ -17,11 +17,11 @@ public class HistoriqueStatutDemande {
 
     @Id
     @Column(name = "id_demande_effectuee")
-    private Long idDemandeEffectuee;
+    private Integer idDemandeEffectuee;
 
     @Id
     @Column(name = "statut_demande")
-    private Long statutDemande;
+    private Integer statutDemande;
 
     @Column(name = "date_heure_historique")
     private LocalDateTime dateHeureHistorique;

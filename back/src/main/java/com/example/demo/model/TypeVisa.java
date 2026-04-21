@@ -10,8 +10,8 @@ public class TypeVisa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id_type_visa")
-    private long id;
+    @Column(name = "id_type_visa")
+    private Integer id;
 
     private String libelle;
 }

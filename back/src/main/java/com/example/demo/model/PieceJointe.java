@@ -16,14 +16,14 @@ public class PieceJointe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_piece_jointe")
-    private Long id;
+    private Integer id;
 
     @Column(name = "fournie")
     private Boolean fournie;
 
     @Column(name = "id_piece_a_fournir")
-    private Long idPieceAFournir;
+    private Integer idPieceAFournir;
 
     @Column(name = "id_demande_effectuee")
-    private Long idDemandeEffectuee;
+    private Integer idDemandeEffectuee;
 }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation Demande</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/demande.css">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="hero-card confirmation-card">
+            <p class="eyebrow">Soumission terminee</p>
+            <h1>Votre demande est enregistree</h1>
+            <div class="result-grid">
+                <div>
+                    <span>ID demande</span>
+                    <strong id="demandeId">-</strong>
+                </div>
+                <div>
+                    <span>Statut</span>
+                    <strong id="demandeStatut">-</strong>
+                </div>
+                <div>
+                    <span>Date demande</span>
+                    <strong id="demandeDate">-</strong>
+                </div>
+            </div>
+            <a href="/demande/nouveau" class="btn btn-primary">Nouvelle demande</a>
+        </section>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById("demandeId").textContent = params.get("id") || "-";
+        document.getElementById("demandeStatut").textContent = params.get("statut") || "-";
+        document.getElementById("demandeDate").textContent = params.get("date") || "-";
+    </script>
+</body>
+</html>

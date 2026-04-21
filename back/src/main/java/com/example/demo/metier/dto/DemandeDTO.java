@@ -6,16 +6,16 @@ import lombok.Data;
 
 @Data
 public class DemandeDTO {
-    private Long idDemandeur;
-    private Long idPassport;
-    private Long idVisaTransformable;
-    private Long idTypeVisa;
-    private Long idTypeDemande;
+    private Integer idDemandeur;
+    private Integer idPassport;
+    private Integer idVisaTransformable;
+    private Integer idTypeVisa;
+    private Integer idTypeDemande;
     private List<PieceJointeDTO> piecesJointes;
 
     @Data
     public static class PieceJointeDTO {
-        private Long idPieceAFournir;
+        private Integer idPieceAFournir;
         private Boolean fournie;
     }
 }

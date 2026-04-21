@@ -35,7 +35,7 @@ import com.example.demo.repository.VisaTransformableRepository;
 @Service
 public class DemandeEffectueeService {
 
-    private static final String STATUT_DOSSIER_CREE = "Dossier créé";
+    private static final Integer ID_STATUT_DOSSIER_CREE = 1;
 
     private final DemandeurRepository demandeurRepository;
     private final PassportRepository passportRepository;
@@ -108,7 +108,7 @@ public class DemandeEffectueeService {
         TypeDemande typeDemande = typeDemandeRepository.findById(dto.getIdTypeDemande())
                 .orElseThrow(() -> new IllegalArgumentException("Type de demande introuvable pour id=" + dto.getIdTypeDemande()));
 
-        validerPiecesObligatoires(dto.getPiecesJointes(), dto.getIdTypeVisa().intValue());
+        validerPiecesObligatoires(dto.getPiecesJointes(), dto.getIdTypeVisa(), dto.getIdTypeDemande());
 
         DemandeEffectue demande = new DemandeEffectue();
         demande.setDateDemande(LocalDateTime.now());
@@ -120,8 +120,8 @@ public class DemandeEffectueeService {
 
         DemandeEffectue demandeCreee = demandeEffectueRepository.save(demande);
 
-        StatutDemande statutCree = statutDemandeRepository.findByLibelleIgnoreCase(STATUT_DOSSIER_CREE)
-                .orElseThrow(() -> new IllegalArgumentException("Statut introuvable: " + STATUT_DOSSIER_CREE));
+        StatutDemande statutCree = statutDemandeRepository.findById(ID_STATUT_DOSSIER_CREE)
+            .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
 
         HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
         historique.setIdDemandeEffectuee(demandeCreee.getId());
@@ -129,25 +129,31 @@ public class DemandeEffectueeService {
         historique.setDateHeureHistorique(LocalDateTime.now());
         historiqueStatutDemandeRepository.save(historique);
 
-        savePiecesJointes(dto.getPiecesJointes(), demandeCreee.getId().intValue());
+        savePiecesJointes(dto.getPiecesJointes(), demandeCreee.getId());
 
         return new DemandeSoumiseDTO(demandeCreee.getId(), statutCree.getLibelle(), demandeCreee.getDateDemande());
     }
 
-    public void validerPiecesObligatoires(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa) {
+    public void validerPiecesObligatoires(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa,
+            Integer idTypeDemande) {
         if (idTypeVisa == null) {
             throw new IllegalArgumentException("L'id type visa est obligatoire pour valider les pieces.");
+        }
+        if (idTypeDemande == null) {
+            throw new IllegalArgumentException("L'id type demande est obligatoire pour valider les pieces.");
         }
 
         List<DemandeDTO.PieceJointeDTO> safePieces = pieces == null ? Collections.emptyList() : pieces;
 
-        Set<Long> piecesFournies = safePieces.stream()
+        Set<Integer> piecesFournies = safePieces.stream()
                 .filter(piece -> Boolean.TRUE.equals(piece.getFournie()))
                 .map(DemandeDTO.PieceJointeDTO::getIdPieceAFournir)
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
 
-        List<PieceAFournir> piecesObligatoires = pieceAFournirRepository.findPiecesObligatoiresByTypeVisa(idTypeVisa.longValue());
+        List<PieceAFournir> piecesObligatoires = pieceAFournirRepository.findPiecesObligatoires(
+            idTypeVisa,
+            idTypeDemande);
 
         for (PieceAFournir pieceObligatoire : piecesObligatoires) {
             if (!piecesFournies.contains(pieceObligatoire.getId())) {
@@ -173,7 +179,7 @@ public class DemandeEffectueeService {
             PieceJointe pieceJointe = new PieceJointe();
             pieceJointe.setFournie(true);
             pieceJointe.setIdPieceAFournir(piece.getIdPieceAFournir());
-            pieceJointe.setIdDemandeEffectuee(idDemande.longValue());
+            pieceJointe.setIdDemandeEffectuee(idDemande);
             pieceJointeRepository.save(pieceJointe);
         }
     }

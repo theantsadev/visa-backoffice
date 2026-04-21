@@ -65,11 +65,11 @@ public class DemandeurService {
         demandeur.setPrenom(dto.getPrenom());
         demandeur.setDateNaissance(dto.getDateNaissance());
         demandeur.setNomJeuneFille(dto.getNomJeuneFille());
-        demandeur.setAdresse_mada(dto.getAdresseMada());
+        demandeur.setAdresseMada(dto.getAdresseMada());
         demandeur.setTelephone(dto.getTelephone().trim());
         demandeur.setEmail(dto.getEmail());
         demandeur.setNationnalite(nationnalite);
-        demandeur.setSituation_familiale(situationFamiliale);
+        demandeur.setSituationFamiliale(situationFamiliale);
 
         return demandeurRepository.save(demandeur);
     }

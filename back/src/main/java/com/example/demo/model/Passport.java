@@ -12,12 +12,14 @@ public class Passport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_passport")
-    private long idPassport;
+    private Integer idPassport;
 
     private String numero;
 
-    private LocalDate dateDelivrence;
+    @Column(name = "date_delivrance")
+    private LocalDate dateDelivrance;
 
+    @Column(name = "date_expiration")
     private LocalDate dateExpiration;
 
     @ManyToOne

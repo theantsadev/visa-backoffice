@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.demo.model.DemandeEffectue;
 
-public interface DemandeEffectueRepository extends JpaRepository<DemandeEffectue, Long> {
+public interface DemandeEffectueRepository extends JpaRepository<DemandeEffectue, Integer> {
 }

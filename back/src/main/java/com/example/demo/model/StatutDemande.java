@@ -10,8 +10,8 @@ public class StatutDemande {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "Id_statut_demande")
-    private long id;
+    @Column(name = "statut_demande")
+    private Integer id;
 
     private String libelle;
 

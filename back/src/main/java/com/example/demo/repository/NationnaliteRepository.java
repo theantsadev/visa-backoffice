@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.demo.model.Nationnalite;
 
-public interface NationnaliteRepository extends JpaRepository<Nationnalite, Long> {
+public interface NationnaliteRepository extends JpaRepository<Nationnalite, Integer> {
 }

@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.demo.model.StatutDemande;
 
-public interface StatutDemandeRepository extends JpaRepository<StatutDemande, Long> {
+public interface StatutDemandeRepository extends JpaRepository<StatutDemande, Integer> {
     Optional<StatutDemande> findByLibelleIgnoreCase(String libelle);
 }

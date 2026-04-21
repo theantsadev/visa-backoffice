@@ -1,0 +1,263 @@
+:root {
+    --bg-a: #f5efe2;
+    --bg-b: #d9e6df;
+    --ink: #102027;
+    --muted: #45606a;
+    --card: #fffdf8;
+    --line: #d6cbb8;
+    --accent: #d95d39;
+    --accent-strong: #b6472b;
+    --ok: #2f7a56;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    color: var(--ink);
+    background: radial-gradient(circle at 20% 15%, #fff4dd, transparent 32%),
+        radial-gradient(circle at 85% 10%, #d9efe5, transparent 30%),
+        linear-gradient(160deg, var(--bg-a), var(--bg-b));
+    min-height: 100vh;
+}
+
+.page-shell {
+    width: min(1080px, 92vw);
+    margin: 28px auto 44px;
+    display: grid;
+    gap: 16px;
+}
+
+.hero-card,
+.stepper-card,
+.form-card {
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 12px 32px rgba(16, 32, 39, 0.08);
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+h1,
+h2 {
+    font-family: "Fraunces", serif;
+    margin: 10px 0;
+}
+
+.subtitle,
+.hint {
+    color: var(--muted);
+    margin: 0;
+}
+
+.stepper {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.step {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    background: #fff;
+}
+
+.step.is-active {
+    border-color: transparent;
+    color: #fff;
+    background: linear-gradient(90deg, var(--accent), #f07f2f);
+}
+
+.step.is-done {
+    border-color: #8ab79a;
+    color: var(--ok);
+    background: #ecf8f0;
+}
+
+.step-panel {
+    display: none;
+    animation: fadeUp 220ms ease;
+}
+
+.step-panel.is-active {
+    display: block;
+}
+
+.grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+label {
+    display: grid;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+label.full {
+    grid-column: 1 / -1;
+}
+
+input,
+select {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font: inherit;
+    color: var(--ink);
+    background: #fff;
+}
+
+input:focus,
+select:focus {
+    outline: 2px solid rgba(217, 93, 57, 0.25);
+    border-color: var(--accent);
+}
+
+.pieces-list {
+    margin-top: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.piece-row {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+}
+
+.piece-tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #1f4b82;
+    margin-left: 8px;
+}
+
+.feedback {
+    min-height: 24px;
+    margin-top: 8px;
+    color: #b23621;
+    font-weight: 500;
+}
+
+.feedback.ok {
+    color: var(--ok);
+}
+
+.actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn {
+    border: none;
+    border-radius: 10px;
+    padding: 11px 16px;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    color: #fff;
+    background: linear-gradient(90deg, var(--accent), #f07f2f);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(90deg, var(--accent-strong), #d56b23);
+}
+
+.btn-ghost {
+    color: var(--ink);
+    background: #efe5d3;
+}
+
+.confirmation-card {
+    text-align: center;
+}
+
+.result-grid {
+    margin: 18px auto 22px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: min(720px, 100%);
+}
+
+.result-grid div {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    gap: 6px;
+}
+
+.result-grid span {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 920px) {
+    .stepper {
+        grid-template-columns: 1fr;
+    }
+
+    .grid.two,
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        justify-content: stretch;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}

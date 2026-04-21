@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouvelle Demande de Visa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/demande.css">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="hero-card">
+            <p class="eyebrow">Parcours principal</p>
+            <h1>Demande de visa - Nouveau titre</h1>
+            <p class="subtitle">
+                Suivez les 5 etapes. Les donnees sont enregistrees dans l'ordre metier et la soumission finale retourne un dossier cree.
+            </p>
+        </section>
+
+        <section class="stepper-card">
+            <ol class="stepper" id="stepper">
+                <li class="step is-active" data-step="1">1. Demandeur</li>
+                <li class="step" data-step="2">2. Passeport</li>
+                <li class="step" data-step="3">3. Visa transformable</li>
+                <li class="step" data-step="4">4. Type de demande</li>
+                <li class="step" data-step="5">5. Pieces</li>
+            </ol>
+        </section>
+
+        <section class="form-card">
+            <form id="demandeForm" novalidate>
+                <div class="step-panel is-active" data-step-panel="1">
+                    <h2>Etape 1 - Demandeur</h2>
+                    <div class="grid two">
+                        <label>Nom *
+                            <input name="nom" required>
+                        </label>
+                        <label>Prenom
+                            <input name="prenom">
+                        </label>
+                        <label>Date de naissance *
+                            <input type="date" name="dateNaissance" required>
+                        </label>
+                        <label>Nom de jeune fille
+                            <input name="nomJeuneFille">
+                        </label>
+                        <label class="full">Adresse a Madagascar
+                            <input name="adresseMada">
+                        </label>
+                        <label>Telephone *
+                            <input name="telephone" required>
+                        </label>
+                        <label>Email
+                            <input type="email" name="email">
+                        </label>
+                        <label>Nationalite *
+                            <select name="idNationalite" required>
+                                <option value="">Selectionner</option>
+                                <option value="1">Malagasy</option>
+                            </select>
+                        </label>
+                        <label>Situation familiale *
+                            <select name="idStatutFamilial" required>
+                                <option value="">Selectionner</option>
+                                <option value="1">Celibataire</option>
+                                <option value="2">Marie(e)</option>
+                                <option value="3">Divorce(e)</option>
+                                <option value="4">Veuf/Veuve</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step-panel" data-step-panel="2">
+                    <h2>Etape 2 - Passeport</h2>
+                    <div class="grid two">
+                        <label>Numero de passeport *
+                            <input name="numero" required>
+                        </label>
+                        <label>Date de delivrance
+                            <input type="date" name="dateDelivrance">
+                        </label>
+                        <label>Date d'expiration
+                            <input type="date" name="dateExpiration">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step-panel" data-step-panel="3">
+                    <h2>Etape 3 - Visa transformable</h2>
+                    <div class="grid two">
+                        <label>Reference visa *
+                            <input name="referenceVisa" required>
+                        </label>
+                        <label>Nature visa
+                            <input name="natureVisa">
+                        </label>
+                        <label>Date entree Madagascar *
+                            <input type="date" name="dateEntreeMada" required>
+                        </label>
+                        <label>Lieu entree Madagascar
+                            <input name="lieuEntreeMada">
+                        </label>
+                        <label>Date sortie
+                            <input type="date" name="dateSortie">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step-panel" data-step-panel="4">
+                    <h2>Etape 4 - Choix de la demande</h2>
+                    <div class="grid two">
+                        <label>Type de visa *
+                            <select name="idTypeVisa" required>
+                                <option value="">Selectionner</option>
+                                <option value="1">Travailleur</option>
+                                <option value="2">Investisseur</option>
+                            </select>
+                        </label>
+                        <label>Type de demande *
+                            <select name="idTypeDemande" required>
+                                <option value="">Selectionner</option>
+                                <option value="1">Nouveau titre</option>
+                                <option value="2">Duplicata</option>
+                                <option value="3">Transfert</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step-panel" data-step-panel="5">
+                    <h2>Etape 5 - Pieces a fournir</h2>
+                    <p class="hint">Cochez toutes les pieces obligatoires pour continuer.</p>
+                    <div id="piecesContainer" class="pieces-list"></div>
+                </div>
+
+                <div class="feedback" id="feedback"></div>
+
+                <div class="actions">
+                    <button type="button" class="btn btn-ghost" id="btnPrev">Precedent</button>
+                    <button type="button" class="btn btn-primary" id="btnNext">Suivant</button>
+                    <button type="button" class="btn btn-primary" id="btnSubmit">Soumettre</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="/ui/demande-app.js"></script>
+</body>
+</html>

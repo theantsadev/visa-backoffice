@@ -14,7 +14,7 @@ public class DemandeEffectue {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_demande_effectuee")
-    private Long id;
+    private Integer id;
 
     @Column(name = "date_demande")
     private LocalDateTime dateDemande;
@@ -32,11 +32,11 @@ public class DemandeEffectue {
     private Demandeur demandeur;
 
     @ManyToOne
-    @JoinColumn(name = "Id_type_demande", nullable = false)
+    @JoinColumn(name = "id_type_demande_effectuee", nullable = false)
     private TypeDemande typeDemande;
 
     @ManyToOne
-    @JoinColumn(name = "Id_type_visa", nullable = false)
+    @JoinColumn(name = "id_type_visa", nullable = false)
     private TypeVisa typeVisa;
 
 }

@@ -252,6 +252,33 @@ DemandeController
 
 ---
 
+#### Commit 10 — Interface utilisateur (parcours principal)
+`front : ecran saisie demande (sans CRUD)`
+
+Créer une interface front simple et claire pour utiliser les fonctionnalités principales
+déjà exposées par l'API, sans écrans CRUD d'administration.
+
+Fonctionnalités UI à couvrir :
+- parcours en 5 étapes guidées (stepper) :
+  1) demandeur
+  2) passeport
+  3) visa transformable
+  4) choix type visa + type demande
+  5) pièces à fournir (cases à cocher)
+- blocage de passage à l'étape suivante si champs obligatoires vides
+- appel des endpoints de saisie dans l'ordre du flux
+- écran de confirmation après soumission avec : idDemande, statut, dateDemande
+
+Pages/écrans minimum :
+- `/demande/nouveau` : formulaire multi-étapes complet
+- `/demande/confirmation` : résultat de soumission
+
+Contraintes :
+- pas de CRUD (pas d'écran de création/modification/suppression de référentiels)
+- priorité au flux utilisateur principal de dépôt de demande
+
+---
+
 ## 👷 Vicky — Support Jordi + Liste des demandes
 `branche : sprint-1-liste-demandes`
 

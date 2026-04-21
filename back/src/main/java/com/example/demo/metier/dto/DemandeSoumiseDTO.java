@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class DemandeSoumiseDTO {
-    private Long id;
+    private Integer id;
     private String statut;
     private LocalDateTime dateDemande;
 }

@@ -99,3 +99,5 @@ CREATE TABLE nationnalite(
    libelle VARCHAR(50),
    PRIMARY KEY(id_nationnalite)
 );
+
+INSERT INTO nationnalite (id_nationnalite,libelle) VALUES(1,'Gasy');
