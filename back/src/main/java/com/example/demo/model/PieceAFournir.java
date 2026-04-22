@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -24,9 +26,11 @@ public class PieceAFournir {
     @Column(name = "obligatoire")
     private Boolean obligatoire;
 
-    @Column(name = "id_type_demande_effectuee")
-    private Integer idTypeDemandeEffectuee;
+    @ManyToOne
+    @JoinColumn(name = "id_type_demande_effectuee")
+    private TypeDemande typeDemande;
 
-    @Column(name = "id_type_visa")
-    private Integer idTypeVisa;
+    @ManyToOne
+    @JoinColumn(name = "id_type_visa")
+    private TypeVisa typeVisa;
 }

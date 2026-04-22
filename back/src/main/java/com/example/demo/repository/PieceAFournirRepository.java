@@ -14,8 +14,8 @@ public interface PieceAFournirRepository extends JpaRepository<PieceAFournir, In
             SELECT p
             FROM PieceAFournir p
             WHERE p.obligatoire = true
-              AND (p.idTypeVisa IS NULL OR p.idTypeVisa = :idTypeVisa)
-            AND (p.idTypeDemandeEffectuee IS NULL OR p.idTypeDemandeEffectuee = :idTypeDemande)
+              AND (p.typeVisa IS NULL OR p.typeVisa.id = :idTypeVisa)
+              AND (p.typeDemande IS NULL OR p.typeDemande.id = :idTypeDemande)
             """)
             List<PieceAFournir> findPiecesObligatoires(@Param("idTypeVisa") Integer idTypeVisa,
               @Param("idTypeDemande") Integer idTypeDemande);
