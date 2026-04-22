@@ -10,31 +10,30 @@ import com.example.demo.model.PieceAFournir;
 
 public interface PieceAFournirRepository extends JpaRepository<PieceAFournir, Integer> {
 
-    @Query("""
+  @Query("""
       SELECT p
       FROM PieceAFournir p
       WHERE p.typeVisa IS NOT NULL
         AND p.typeVisa.id = :idTypeVisa
       """)
-    List<PieceAFournir> findByTypeVisa_IdTypeVisa(@Param("idTypeVisa") Integer idTypeVisa);
+  List<PieceAFournir> findByTypeVisa_IdTypeVisa(@Param("idTypeVisa") Integer idTypeVisa);
 
-    @Query("""
+  @Query("""
       SELECT p
       FROM PieceAFournir p
       WHERE p.typeDemande IS NOT NULL
         AND p.typeDemande.id = :idTypeDemande
       """)
-    List<PieceAFournir> findByTypeDemande_IdTypeDemande(@Param("idTypeDemande") Integer idTypeDemande);
+  List<PieceAFournir> findByTypeDemande_IdTypeDemande(@Param("idTypeDemande") Integer idTypeDemande);
 
-    List<PieceAFournir> findByTypeVisaIsNullAndTypeDemandeIsNull();
+  List<PieceAFournir> findByTypeVisaIsNullAndTypeDemandeIsNull();
 
-    @Query("""
-            SELECT p
-            FROM PieceAFournir p
-            WHERE p.obligatoire = true
-              AND (p.typeVisa IS NULL OR p.typeVisa.id = :idTypeVisa)
-              AND (p.typeDemande IS NULL OR p.typeDemande.id = :idTypeDemande)
-            """)
-            List<PieceAFournir> findPiecesObligatoires(@Param("idTypeVisa") Integer idTypeVisa,
-              @Param("idTypeDemande") Integer idTypeDemande);
+  @Query("""
+      SELECT p
+      FROM PieceAFournir p
+      WHERE p.obligatoire = true
+        AND (p.typeVisa IS NULL OR p.typeVisa.id = :idTypeVisa)
+        AND p.typeDemande IS NULL
+      """)
+  List<PieceAFournir> findPiecesObligatoires(@Param("idTypeVisa") Integer idTypeVisa);
 }

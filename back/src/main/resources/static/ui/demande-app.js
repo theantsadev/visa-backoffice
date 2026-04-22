@@ -22,20 +22,11 @@
         piecesSelection: []
     };
 
-    const pieceCatalog = [
-        { id: 1, label: "2 photos identite", scope: "commun" },
-        { id: 2, label: "Extrait casier judiciaire", scope: "commun" },
-        { id: 3, label: "Notice de renseignement", scope: "commun" },
-        { id: 4, label: "Photocopie certifiee passeport", scope: "commun" },
-        { id: 5, label: "Certificat de residence", scope: "commun" },
-        { id: 6, label: "Autorisation emploi", visa: 1, scope: "visa" },
-        { id: 7, label: "Attestation d'emploi (original)", visa: 1, scope: "visa" },
-        { id: 8, label: "Statut de la societe", visa: 2, scope: "visa" },
-        { id: 9, label: "Extrait registre de commerce", visa: 2, scope: "visa" },
-        { id: 10, label: "Carte fiscale", visa: 2, scope: "visa" },
-        { id: 11, label: "Declaration perte/vol", demande: 2, scope: "demande" },
-        { id: 12, label: "Ancien passeport", demande: 3, scope: "demande" },
-        { id: 13, label: "Photocopie visa transformable", demande: 1, scope: "demande" }
+    const references = [
+        { field: "idNationalite", url: "/api/nationalites" },
+        { field: "idStatutFamilial", url: "/api/statuts-familiaux" },
+        { field: "idTypeVisa", url: "/api/types-visa" },
+        { field: "idTypeDemande", url: "/api/types-demande" }
     ];
 
     function setMessage(message, ok) {
@@ -87,7 +78,7 @@
                 || required("[name='idTypeDemande']", "Type de demande");
         }
         if (step === 5) {
-            const missing = state.piecesSelection.filter((p) => !p.fournie);
+            const missing = state.piecesSelection.filter((p) => p.obligatoire && !p.fournie);
             if (missing.length > 0) {
                 return "Toutes les pieces obligatoires doivent etre cochees.";
             }
@@ -105,41 +96,86 @@
         return value ? Number(value) : null;
     }
 
-    function buildPieces() {
+    function getCategorieLabel(categorie) {
+        if (categorie === "COMMUNE") {
+            return "Commune";
+        }
+        if (categorie === "SPECIFIQUE_VISA") {
+            return "Specifique visa";
+        }
+        if (categorie === "SPECIFIQUE_DEMANDE") {
+            return "Specifique demande";
+        }
+        if (categorie === "SPECIFIQUE_VISA_DEMANDE") {
+            return "Specifique visa + demande";
+        }
+        return "Obligatoire";
+    }
+
+    function fillSelect(fieldName, items) {
+        const select = form.querySelector("[name='" + fieldName + "']");
+        if (!select) {
+            return;
+        }
+
+        const first = select.querySelector("option[value='']");
+        select.innerHTML = "";
+        if (first) {
+            select.appendChild(first);
+        }
+
+        items.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = String(item.id);
+            option.textContent = item.libelle || item.nom || ("Valeur " + item.id);
+            select.appendChild(option);
+        });
+    }
+
+    async function loadReferences() {
+        const results = await Promise.all(references.map((config) => getJson(config.url)));
+        references.forEach((config, index) => {
+            fillSelect(config.field, Array.isArray(results[index]) ? results[index] : []);
+        });
+    }
+
+    async function buildPieces() {
         const idTypeVisa = toNumber("idTypeVisa");
         const idTypeDemande = toNumber("idTypeDemande");
-        const rows = pieceCatalog.filter((piece) => {
-            if (piece.scope === "commun") {
-                return true;
-            }
-            if (piece.scope === "visa") {
-                return piece.visa === idTypeVisa;
-            }
-            return piece.demande === idTypeDemande;
-        });
+        if (!idTypeVisa || !idTypeDemande) {
+            throw new Error("Type de visa et type de demande requis pour charger les pieces.");
+        }
+
+        const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + idTypeVisa);
 
         state.piecesSelection = rows.map((piece) => ({
-            idPieceAFournir: piece.id,
-            fournie: false
+            idPieceAFournir: piece.idPieceAFournir,
+            fournie: false,
+            obligatoire: Boolean(piece.obligatoire)
         }));
 
         piecesContainer.innerHTML = "";
+        if (!rows.length) {
+            piecesContainer.textContent = "Aucune piece obligatoire trouvee pour cette combinaison.";
+            return;
+        }
+
         rows.forEach((piece) => {
             const wrapper = document.createElement("label");
             wrapper.className = "piece-row";
 
             const left = document.createElement("div");
-            left.textContent = piece.label;
+            left.textContent = piece.nom;
 
             const tag = document.createElement("span");
             tag.className = "piece-tag";
-            tag.textContent = piece.scope === "commun" ? "Commune" : (piece.scope === "visa" ? "Specifique visa" : "Specifique demande");
+            tag.textContent = getCategorieLabel(piece.categorie);
             left.appendChild(tag);
 
             const check = document.createElement("input");
             check.type = "checkbox";
             check.addEventListener("change", () => {
-                const item = state.piecesSelection.find((p) => p.idPieceAFournir === piece.id);
+                const item = state.piecesSelection.find((p) => p.idPieceAFournir === piece.idPieceAFournir);
                 if (item) {
                     item.fournie = check.checked;
                 }
@@ -149,6 +185,19 @@
             wrapper.appendChild(check);
             piecesContainer.appendChild(wrapper);
         });
+    }
+
+    async function getJson(url) {
+        const response = await fetch(url, {
+            method: "GET"
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || ("Erreur API " + response.status));
+        }
+
+        return response.json();
     }
 
     async function postJson(url, body) {
@@ -230,7 +279,7 @@
         syncUi();
     });
 
-    btnNext.addEventListener("click", () => {
+    btnNext.addEventListener("click", async () => {
         const error = validateStep(currentStep);
         if (error) {
             setMessage(error);
@@ -238,7 +287,12 @@
         }
 
         if (currentStep === 4) {
-            buildPieces();
+            try {
+                await buildPieces();
+            } catch (e) {
+                setMessage("Impossible de charger les pieces: " + (e.message || "erreur inconnue"));
+                return;
+            }
         }
 
         setMessage("");
@@ -263,5 +317,14 @@
         }
     });
 
-    syncUi();
+    async function init() {
+        syncUi();
+        try {
+            await loadReferences();
+        } catch (e) {
+            setMessage("Impossible de charger les donnees de reference: " + (e.message || "erreur inconnue"));
+        }
+    }
+
+    init();
 })();
