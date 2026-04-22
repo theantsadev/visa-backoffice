@@ -93,20 +93,24 @@ public class DemandeEffectueeService {
         }
 
         Demandeur demandeur = demandeurRepository.findById(dto.getIdDemandeur())
-                .orElseThrow(() -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
 
         Passport passport = passportRepository.findById(dto.getIdPassport())
-                .orElseThrow(() -> new IllegalArgumentException("Passeport introuvable pour id=" + dto.getIdPassport()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Passeport introuvable pour id=" + dto.getIdPassport()));
 
         VisaTransformable visaTransformable = visaTransformableRepository.findById(dto.getIdVisaTransformable())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Visa transformable introuvable pour id=" + dto.getIdVisaTransformable()));
 
         TypeVisa typeVisa = typeVisaRepository.findById(dto.getIdTypeVisa())
-                .orElseThrow(() -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
 
         TypeDemande typeDemande = typeDemandeRepository.findById(dto.getIdTypeDemande())
-                .orElseThrow(() -> new IllegalArgumentException("Type de demande introuvable pour id=" + dto.getIdTypeDemande()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Type de demande introuvable pour id=" + dto.getIdTypeDemande()));
 
         validerPiecesObligatoires(dto.getPiecesJointes(), dto.getIdTypeVisa(), dto.getIdTypeDemande());
 
@@ -121,7 +125,8 @@ public class DemandeEffectueeService {
         DemandeEffectue demandeCreee = demandeEffectueRepository.save(demande);
 
         StatutDemande statutCree = statutDemandeRepository.findById(ID_STATUT_DOSSIER_CREE)
-            .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
 
         HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
         historique.setIdDemandeEffectuee(demandeCreee.getId());
@@ -152,12 +157,12 @@ public class DemandeEffectueeService {
                 .collect(Collectors.toSet());
 
         List<PieceAFournir> piecesObligatoires = pieceAFournirRepository.findPiecesObligatoires(
-            idTypeVisa,
-            idTypeDemande);
+                idTypeVisa);
 
         for (PieceAFournir pieceObligatoire : piecesObligatoires) {
             if (!piecesFournies.contains(pieceObligatoire.getId())) {
-                throw new IllegalArgumentException("Piece obligatoire manquante (id=" + pieceObligatoire.getId() + ").");
+                throw new IllegalArgumentException(
+                        "Piece obligatoire manquante (id=" + pieceObligatoire.getId() + ").");
             }
         }
     }
