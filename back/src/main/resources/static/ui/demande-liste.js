@@ -63,11 +63,20 @@
             const title = document.createElement("strong");
             title.textContent = safe(demande.nomDemandeur);
 
+            const idTag = document.createElement("span");
+            idTag.className = "id-chip";
+            idTag.textContent = "ID " + safe(demande.id);
+
+            const titleWrap = document.createElement("div");
+            titleWrap.className = "demande-row-title";
+            titleWrap.appendChild(title);
+            titleWrap.appendChild(idTag);
+
             const status = document.createElement("span");
             status.className = "status-chip";
             status.textContent = safe(demande.statut);
 
-            top.appendChild(title);
+            top.appendChild(titleWrap);
             top.appendChild(status);
 
             const meta = document.createElement("div");
@@ -118,64 +127,119 @@
         renderList();
     }
 
-    function sectionHtml(title, rows) {
-        const lines = rows
-            .map(function (row) {
-                return "<div><span>" + row.label + "</span><strong>" + safe(row.value) + "</strong></div>";
-            })
-            .join("");
+    function createDetailSection(title, rows) {
+        const section = document.createElement("article");
+        section.className = "detail-block";
 
-        return "<article class=\"detail-block\"><h3>" + title + "</h3><div class=\"detail-grid\">" + lines + "</div></article>";
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        const grid = document.createElement("div");
+        grid.className = "detail-grid";
+
+        rows.forEach(function (row) {
+            const item = document.createElement("div");
+            item.className = "detail-item";
+
+            const label = document.createElement("span");
+            label.className = "detail-label";
+            label.textContent = row.label;
+
+            const value = document.createElement("strong");
+            value.className = "detail-value";
+            value.textContent = safe(row.value);
+
+            item.appendChild(label);
+            item.appendChild(value);
+            grid.appendChild(item);
+        });
+
+        section.appendChild(grid);
+        return section;
     }
 
     function renderDetail(detail) {
         detailPlaceholder.hidden = true;
         detailContent.hidden = false;
+        detailContent.innerHTML = "";
 
         const pieces = Array.isArray(detail.piecesJointes) ? detail.piecesJointes : [];
-        const piecesRows = pieces.length === 0
-            ? "<p class=\"hint\">Aucune piece jointe enregistree.</p>"
-            : pieces
-                .map(function (piece) {
-                    const stateClass = piece.fournie ? "is-ok" : "is-missing";
-                    const stateLabel = piece.fournie ? "Fournie" : "Non fournie";
-                    return "<li class=\"piece-detail-row\">"
-                        + "<div><strong>" + safe(piece.nomPiece) + "</strong><span>ID piece: " + safe(piece.idPieceAFournir) + "</span></div>"
-                        + "<span class=\"piece-state " + stateClass + "\">" + stateLabel + "</span>"
-                        + "</li>";
-                })
-                .join("");
 
-        detailContent.innerHTML = ""
-            + sectionHtml("Demande", [
-                { label: "ID", value: detail.id },
-                { label: "Statut", value: detail.statut },
-                { label: "Type visa", value: detail.typeVisa },
-                { label: "Type demande", value: detail.typeDemande },
-                { label: "Date demande", value: formatDateTime(detail.dateDemande) }
-            ])
-            + sectionHtml("Demandeur", [
-                { label: "ID demandeur", value: detail.demandeur && detail.demandeur.idDemandeur },
-                { label: "Nom", value: detail.demandeur && detail.demandeur.nom },
-                { label: "Prenom", value: detail.demandeur && detail.demandeur.prenom },
-                { label: "Date naissance", value: detail.demandeur && detail.demandeur.dateNaissance },
-                { label: "Telephone", value: detail.demandeur && detail.demandeur.telephone },
-                { label: "Email", value: detail.demandeur && detail.demandeur.email }
-            ])
-            + sectionHtml("Passeport", [
-                { label: "ID passeport", value: detail.passport && detail.passport.idPassport },
-                { label: "Numero", value: detail.passport && detail.passport.numero },
-                { label: "Date delivrance", value: detail.passport && detail.passport.dateDelivrance },
-                { label: "Date expiration", value: detail.passport && detail.passport.dateExpiration }
-            ])
-            + sectionHtml("Visa transformable", [
-                { label: "ID visa", value: detail.visaTransformable && detail.visaTransformable.idVisaTransformable },
-                { label: "Reference", value: detail.visaTransformable && detail.visaTransformable.referenceVisa },
-                { label: "Date entree", value: detail.visaTransformable && detail.visaTransformable.dateEntreeMada },
-                { label: "Lieu entree", value: detail.visaTransformable && detail.visaTransformable.lieuEntreeMada },
-                { label: "Date sortie", value: detail.visaTransformable && detail.visaTransformable.dateSortie }
-            ])
-            + "<article class=\"detail-block\"><h3>Pieces jointes</h3><ul class=\"piece-detail-list\">" + piecesRows + "</ul></article>";
+        detailContent.appendChild(createDetailSection("Demande", [
+            { label: "ID", value: detail.id },
+            { label: "Statut", value: detail.statut },
+            { label: "Type visa", value: detail.typeVisa },
+            { label: "Type demande", value: detail.typeDemande },
+            { label: "Date demande", value: formatDateTime(detail.dateDemande) }
+        ]));
+
+        detailContent.appendChild(createDetailSection("Demandeur", [
+            { label: "ID demandeur", value: detail.demandeur && detail.demandeur.idDemandeur },
+            { label: "Nom", value: detail.demandeur && detail.demandeur.nom },
+            { label: "Prenom", value: detail.demandeur && detail.demandeur.prenom },
+            { label: "Date de naissance", value: detail.demandeur && detail.demandeur.dateNaissance },
+            { label: "Telephone", value: detail.demandeur && detail.demandeur.telephone },
+            { label: "Email", value: detail.demandeur && detail.demandeur.email }
+        ]));
+
+        detailContent.appendChild(createDetailSection("Passeport", [
+            { label: "ID passeport", value: detail.passport && detail.passport.idPassport },
+            { label: "Numero", value: detail.passport && detail.passport.numero },
+            { label: "Date de delivrance", value: detail.passport && detail.passport.dateDelivrance },
+            { label: "Date d'expiration", value: detail.passport && detail.passport.dateExpiration }
+        ]));
+
+        detailContent.appendChild(createDetailSection("Visa transformable", [
+            { label: "ID visa", value: detail.visaTransformable && detail.visaTransformable.idVisaTransformable },
+            { label: "Reference", value: detail.visaTransformable && detail.visaTransformable.referenceVisa },
+            { label: "Date entree", value: detail.visaTransformable && detail.visaTransformable.dateEntreeMada },
+            { label: "Lieu entree", value: detail.visaTransformable && detail.visaTransformable.lieuEntreeMada },
+            { label: "Date sortie", value: detail.visaTransformable && detail.visaTransformable.dateSortie }
+        ]));
+
+        const pieceSection = document.createElement("article");
+        pieceSection.className = "detail-block";
+
+        const pieceTitle = document.createElement("h3");
+        pieceTitle.textContent = "Pieces jointes";
+        pieceSection.appendChild(pieceTitle);
+
+        if (pieces.length === 0) {
+            const hint = document.createElement("p");
+            hint.className = "hint";
+            hint.textContent = "Aucune piece jointe enregistree.";
+            pieceSection.appendChild(hint);
+        } else {
+            const list = document.createElement("ul");
+            list.className = "piece-detail-list";
+
+            pieces.forEach(function (piece) {
+                const item = document.createElement("li");
+                item.className = "piece-detail-row";
+
+                const left = document.createElement("div");
+                const name = document.createElement("strong");
+                name.textContent = safe(piece.nomPiece);
+                const info = document.createElement("span");
+                info.textContent = "ID piece: " + safe(piece.idPieceAFournir);
+
+                left.appendChild(name);
+                left.appendChild(info);
+
+                const state = document.createElement("span");
+                state.className = "piece-state " + (piece.fournie ? "is-ok" : "is-missing");
+                state.textContent = piece.fournie ? "Fournie" : "Non fournie";
+
+                item.appendChild(left);
+                item.appendChild(state);
+                list.appendChild(item);
+            });
+
+            pieceSection.appendChild(list);
+        }
+
+        detailContent.appendChild(pieceSection);
     }
 
     async function loadDetail(idDemande) {
