@@ -20,4 +20,9 @@ public class DemandeUiController {
     public String confirmationParcours() {
         return "forward:/demande-confirmation.html";
     }
+
+    @GetMapping("/demande/liste")
+    public String listeDemandes() {
+        return "forward:/demande-liste.html";
+    }
 }
