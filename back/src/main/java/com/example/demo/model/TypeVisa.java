@@ -14,5 +14,7 @@ public class TypeVisa {
     private Integer id;
 
     private String libelle;
+
+    private Integer duree;
 }
 

@@ -23,6 +23,6 @@ public class PieceJointe {
     @Column(name = "id_piece_a_fournir")
     private Integer idPieceAFournir;
 
-    @Column(name = "id_demande_effectuee")
-    private Integer idDemandeEffectuee;
+    @Column(name = "id_demande")
+    private Integer idDemande;
 }

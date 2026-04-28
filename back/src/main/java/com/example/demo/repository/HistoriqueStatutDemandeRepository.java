@@ -9,6 +9,5 @@ import com.example.demo.model.HistoriqueStatutDemandeId;
 
 public interface HistoriqueStatutDemandeRepository
                 extends JpaRepository<HistoriqueStatutDemande, HistoriqueStatutDemandeId> {
-        Optional<HistoriqueStatutDemande> findTopByIdDemandeEffectueeOrderByDateHeureHistoriqueDesc(
-                        Integer idDemandeEffectuee);
+        Optional<HistoriqueStatutDemande> findTopByIdDemandeOrderByDateHeureHistoriqueDesc(Integer idDemande);
 }

@@ -27,7 +27,7 @@ public class PieceAFournir {
     private Boolean obligatoire;
 
     @ManyToOne
-    @JoinColumn(name = "id_type_demande_effectuee")
+    @JoinColumn(name = "id_type_demande")
     private TypeDemande typeDemande;
 
     @ManyToOne

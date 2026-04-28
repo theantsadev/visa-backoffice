@@ -16,8 +16,8 @@ import lombok.Data;
 public class HistoriqueStatutDemande {
 
     @Id
-    @Column(name = "id_demande_effectuee")
-    private Integer idDemandeEffectuee;
+    @Column(name = "id_demande")
+    private Integer idDemande;
 
     @Id
     @Column(name = "statut_demande")

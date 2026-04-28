@@ -11,14 +11,16 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.metier.dto.DemandeDetailDTO;
 import com.example.demo.metier.dto.DemandeListeItemDTO;
-import com.example.demo.model.DemandeEffectue;
+import com.example.demo.model.Demande;
+import com.example.demo.model.DemandeNouveauTitre;
 import com.example.demo.model.Demandeur;
 import com.example.demo.model.HistoriqueStatutDemande;
 import com.example.demo.model.Passport;
 import com.example.demo.model.PieceAFournir;
 import com.example.demo.model.PieceJointe;
 import com.example.demo.model.VisaTransformable;
-import com.example.demo.repository.DemandeEffectueRepository;
+import com.example.demo.repository.DemandeNouveauTitreRepository;
+import com.example.demo.repository.DemandeRepository;
 import com.example.demo.repository.HistoriqueStatutDemandeRepository;
 import com.example.demo.repository.PieceAFournirRepository;
 import com.example.demo.repository.PieceJointeRepository;
@@ -27,19 +29,22 @@ import com.example.demo.repository.StatutDemandeRepository;
 @Service
 public class DemandeListeService {
 
-    private final DemandeEffectueRepository demandeEffectueRepository;
+    private final DemandeRepository demandeRepository;
+    private final DemandeNouveauTitreRepository demandeNouveauTitreRepository;
     private final HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
     private final StatutDemandeRepository statutDemandeRepository;
     private final PieceJointeRepository pieceJointeRepository;
     private final PieceAFournirRepository pieceAFournirRepository;
 
     public DemandeListeService(
-            DemandeEffectueRepository demandeEffectueRepository,
+            DemandeRepository demandeRepository,
+            DemandeNouveauTitreRepository demandeNouveauTitreRepository,
             HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository,
             StatutDemandeRepository statutDemandeRepository,
             PieceJointeRepository pieceJointeRepository,
             PieceAFournirRepository pieceAFournirRepository) {
-        this.demandeEffectueRepository = demandeEffectueRepository;
+        this.demandeRepository = demandeRepository;
+        this.demandeNouveauTitreRepository = demandeNouveauTitreRepository;
         this.historiqueStatutDemandeRepository = historiqueStatutDemandeRepository;
         this.statutDemandeRepository = statutDemandeRepository;
         this.pieceJointeRepository = pieceJointeRepository;
@@ -47,14 +52,14 @@ public class DemandeListeService {
     }
 
     public List<DemandeListeItemDTO> listerToutesLesDemandes() {
-        return demandeEffectueRepository.findAll().stream()
-                .map(demande -> new DemandeListeItemDTO(
-                        demande.getId(),
-                        construireNomDemandeur(demande.getDemandeur()),
-                        demande.getTypeVisa() != null ? demande.getTypeVisa().getLibelle() : null,
-                        demande.getTypeDemande() != null ? demande.getTypeDemande().getLibelle() : null,
-                        getStatutActuelLibelle(demande.getId()),
-                        demande.getDateDemande()))
+        return demandeRepository.findAll().stream()
+            .map(demande -> new DemandeListeItemDTO(
+                demande.getId(),
+                construireNomDemandeur(demande.getDemandeur()),
+                getTypeVisaLibelle(demande),
+                demande.getTypeDemande() != null ? demande.getTypeDemande().getLibelle() : null,
+                getStatutActuelLibelle(demande.getId()),
+                demande.getDateDemande()))
                 .toList();
     }
 
@@ -63,10 +68,10 @@ public class DemandeListeService {
             throw new IllegalArgumentException("L'id de la demande est obligatoire.");
         }
 
-        DemandeEffectue demande = demandeEffectueRepository.findById(idDemande)
+        Demande demande = demandeRepository.findById(idDemande)
                 .orElseThrow(() -> new IllegalArgumentException("Demande introuvable pour id=" + idDemande));
 
-        List<PieceJointe> piecesJointes = pieceJointeRepository.findByIdDemandeEffectuee(idDemande);
+        List<PieceJointe> piecesJointes = pieceJointeRepository.findByIdDemande(idDemande);
         List<Integer> idsPiecesAFournir = piecesJointes.stream()
                 .map(PieceJointe::getIdPieceAFournir)
                 .filter(Objects::nonNull)
@@ -89,11 +94,11 @@ public class DemandeListeService {
                 demande.getId(),
                 demande.getDateDemande(),
                 getStatutActuelLibelle(demande.getId()),
-                demande.getTypeVisa() != null ? demande.getTypeVisa().getLibelle() : null,
+                getTypeVisaLibelle(demande),
                 demande.getTypeDemande() != null ? demande.getTypeDemande().getLibelle() : null,
                 toDemandeurDetail(demande.getDemandeur()),
-                toPassportDetail(demande.getPassport()),
-                toVisaTransformableDetail(demande.getVisaTransformable()),
+                toPassportDetail(getPassport(demande)),
+                toVisaTransformableDetail(getVisaTransformable(demande)),
                 piecesJointesDetail);
     }
 
@@ -114,7 +119,7 @@ public class DemandeListeService {
         }
 
         Optional<HistoriqueStatutDemande> historique = historiqueStatutDemandeRepository
-                .findTopByIdDemandeEffectueeOrderByDateHeureHistoriqueDesc(idDemande);
+            .findTopByIdDemandeOrderByDateHeureHistoriqueDesc(idDemande);
 
         if (historique.isEmpty()) {
             return null;
@@ -167,5 +172,36 @@ public class DemandeListeService {
                 visaTransformable.getDateEntreeMada(),
                 visaTransformable.getLieuEntreeMada(),
                 visaTransformable.getDateSortie());
+    }
+
+    private String getTypeVisaLibelle(Demande demande) {
+        DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
+        if (demandeNouveauTitre == null || demandeNouveauTitre.getTypeVisa() == null) {
+            return null;
+        }
+
+        return demandeNouveauTitre.getTypeVisa().getLibelle();
+    }
+
+    private Passport getPassport(Demande demande) {
+        DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
+        return demandeNouveauTitre != null ? demandeNouveauTitre.getPassport() : null;
+    }
+
+    private VisaTransformable getVisaTransformable(Demande demande) {
+        DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
+        return demandeNouveauTitre != null ? demandeNouveauTitre.getVisaTransformable() : null;
+    }
+
+    private DemandeNouveauTitre getDemandeNouveauTitre(Demande demande) {
+        if (demande == null) {
+            return null;
+        }
+
+        if (demande.getDemandeNouveauTitre() != null) {
+            return demande.getDemandeNouveauTitre();
+        }
+
+        return demandeNouveauTitreRepository.findById(demande.getId()).orElse(null);
     }
 }

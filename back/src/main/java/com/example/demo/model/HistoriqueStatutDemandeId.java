@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HistoriqueStatutDemandeId implements Serializable {
-    private Integer idDemandeEffectuee;
+    private Integer idDemande;
     private Integer statutDemande;
 }

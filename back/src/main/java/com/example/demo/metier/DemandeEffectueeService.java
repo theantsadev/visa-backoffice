@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.metier.dto.DemandeDTO;
 import com.example.demo.metier.dto.DemandeSoumiseDTO;
-import com.example.demo.model.DemandeEffectue;
+import com.example.demo.model.Demande;
+import com.example.demo.model.DemandeNouveauTitre;
 import com.example.demo.model.Demandeur;
 import com.example.demo.model.HistoriqueStatutDemande;
 import com.example.demo.model.Passport;
@@ -21,7 +22,8 @@ import com.example.demo.model.StatutDemande;
 import com.example.demo.model.TypeDemande;
 import com.example.demo.model.TypeVisa;
 import com.example.demo.model.VisaTransformable;
-import com.example.demo.repository.DemandeEffectueRepository;
+import com.example.demo.repository.DemandeNouveauTitreRepository;
+import com.example.demo.repository.DemandeRepository;
 import com.example.demo.repository.DemandeurRepository;
 import com.example.demo.repository.HistoriqueStatutDemandeRepository;
 import com.example.demo.repository.PassportRepository;
@@ -43,7 +45,8 @@ public class DemandeEffectueeService {
     private final TypeVisaRepository typeVisaRepository;
     private final TypeDemandeRepository typeDemandeRepository;
     private final StatutDemandeRepository statutDemandeRepository;
-    private final DemandeEffectueRepository demandeEffectueRepository;
+    private final DemandeRepository demandeRepository;
+    private final DemandeNouveauTitreRepository demandeNouveauTitreRepository;
     private final HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
     private final PieceAFournirRepository pieceAFournirRepository;
     private final PieceJointeRepository pieceJointeRepository;
@@ -55,7 +58,8 @@ public class DemandeEffectueeService {
             TypeVisaRepository typeVisaRepository,
             TypeDemandeRepository typeDemandeRepository,
             StatutDemandeRepository statutDemandeRepository,
-            DemandeEffectueRepository demandeEffectueRepository,
+            DemandeRepository demandeRepository,
+            DemandeNouveauTitreRepository demandeNouveauTitreRepository,
             HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository,
             PieceAFournirRepository pieceAFournirRepository,
             PieceJointeRepository pieceJointeRepository) {
@@ -65,7 +69,8 @@ public class DemandeEffectueeService {
         this.typeVisaRepository = typeVisaRepository;
         this.typeDemandeRepository = typeDemandeRepository;
         this.statutDemandeRepository = statutDemandeRepository;
-        this.demandeEffectueRepository = demandeEffectueRepository;
+        this.demandeRepository = demandeRepository;
+        this.demandeNouveauTitreRepository = demandeNouveauTitreRepository;
         this.historiqueStatutDemandeRepository = historiqueStatutDemandeRepository;
         this.pieceAFournirRepository = pieceAFournirRepository;
         this.pieceJointeRepository = pieceJointeRepository;
@@ -128,22 +133,26 @@ public class DemandeEffectueeService {
 
         validerPiecesObligatoires(dto.getPiecesJointes(), dto.getIdTypeVisa(), dto.getIdTypeDemande());
 
-        DemandeEffectue demande = new DemandeEffectue();
+        Demande demande = new Demande();
         demande.setDateDemande(LocalDateTime.now());
         demande.setDemandeur(demandeur);
-        demande.setPassport(passport);
-        demande.setVisaTransformable(visaTransformable);
-        demande.setTypeVisa(typeVisa);
         demande.setTypeDemande(typeDemande);
 
-        DemandeEffectue demandeCreee = demandeEffectueRepository.save(demande);
+        Demande demandeCreee = demandeRepository.save(demande);
+
+        DemandeNouveauTitre demandeNouveauTitre = new DemandeNouveauTitre();
+        demandeNouveauTitre.setDemande(demandeCreee);
+        demandeNouveauTitre.setPassport(passport);
+        demandeNouveauTitre.setVisaTransformable(visaTransformable);
+        demandeNouveauTitre.setTypeVisa(typeVisa);
+        demandeNouveauTitreRepository.save(demandeNouveauTitre);
 
         StatutDemande statutCree = statutDemandeRepository.findById(ID_STATUT_DOSSIER_CREE)
                 .orElseThrow(
                         () -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
 
         HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
-        historique.setIdDemandeEffectuee(demandeCreee.getId());
+        historique.setIdDemande(demandeCreee.getId());
         historique.setStatutDemande(statutCree.getId());
         historique.setDateHeureHistorique(LocalDateTime.now());
         historiqueStatutDemandeRepository.save(historique);
@@ -196,7 +205,7 @@ public class DemandeEffectueeService {
 
             PieceJointe pieceJointe = new PieceJointe();
             pieceJointe.setIdPieceAFournir(piece.getIdPieceAFournir());
-            pieceJointe.setIdDemandeEffectuee(idDemande);
+            pieceJointe.setIdDemande(idDemande);
             pieceJointeRepository.save(pieceJointe);
         }
     }

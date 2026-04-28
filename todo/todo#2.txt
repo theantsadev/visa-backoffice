@@ -2,6 +2,7 @@ Sprint 2 : sans donnée antérieures
 TL : vicky
 BO : mike
 FO : jordi
+
 - on tient compte des 2 autres types de demande (transfert et duplicata)
 Liste des fonctionnalités : 
 - CREATE/UPDATE demande de duplicata sans donnée antérieure
@@ -9,7 +10,7 @@ Liste des fonctionnalités :
 - CREATE/UPDATE demande nouveau titre (create deja fait dans sprint 1)
 
 Regle de gestion : 
- - Si tous les champs/ pieces obli sont complets + optionnels restants alors statut_demande = dossier_cree ; dossier encore modifiable
+ - Si tous les champs/ pieces obligatoire sont complets + optionnels restants alors statut_demande = dossier_cree ; dossier encore modifiable
  - Si tous types de champs / pieces alors statut_demande = scan_termine ; dossier non modifiable
  - Si accepté par admin (l'admin peut accepté ou non via un bouton) alors statut_demande = visa_accorde else visa_rejete, dossier non modifiable 
 
