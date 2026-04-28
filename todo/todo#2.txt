@@ -1,0 +1,55 @@
+Sprint 2 : sans donnée antérieures
+TL : vicky
+BO : mike
+FO : jordi
+- on tient compte des 2 autres types de demande (transfert et duplicata)
+Liste des fonctionnalités : 
+- CREATE/UPDATE demande de duplicata sans donnée antérieure
+- CREATE/UPDATE demande de transfert sans donnée antérieure
+- CREATE/UPDATE demande nouveau titre (create deja fait dans sprint 1)
+
+Regle de gestion : 
+ - Si tous les champs/ pieces obli sont complets + optionnels restants alors statut_demande = dossier_cree ; dossier encore modifiable
+ - Si tous types de champs / pieces alors statut_demande = scan_termine ; dossier non modifiable
+ - Si accepté par admin (l'admin peut accepté ou non via un bouton) alors statut_demande = visa_accorde else visa_rejete, dossier non modifiable 
+
+
+Ecran + metier : 
+On choisit d'abord le type de demande puis si c'est duplicata de carte résident ou duplicata  alors on met un checkbox sans données antérieures .
+Si sans données antérieures alors on redirige vers le formulaire de nouveau titre puis on le remplit et puis on remplit les champs specifiques de la demande réellement ciblée. 
+ex : Pour le transfert , on doit renseigner le nouveau passeport
+Et puis , cette demande pour nouveau titre ne crée pas un visa mais est en état "visa_accorde" directement . Ensuite on lie cette demande à la demande réellement ciblée (transfert ou duplicata)   
+    
+Bdd :
+1) maj de la table statut_demande : dossier_cree ,scan_termine , visa_accorde
+2) ajout de la table carte_resident de meme structure que la table visa
+3) ajout de la colonne duree dans la type_visa pour avoir la date d'expiration d'un visa = date_debut + duree
+4) changement du mcd 
+** demande { 
+             id_demande PK, 
+	     date_demande ,
+	     id_demandeur FK(demandeur), 
+	     id_type_demande FK(type_demande)
+	   }
+** demande_nouveau_titre { 
+			  id_demande_nouveau_titre FK(demande)  PK , 
+                          id_visa_transformable FK(visa_transformable),
+			  id_passeport FK(passeport),		
+			  id_type_visa FK(type_visa)
+             }
+
+** demande_duplicata_carte_resident {
+					id_demande_duplicata_carte_resident FK(demande) PK,
+					id_demande_nouveau_titre_source FK(demande_nouveau_titre)
+
+}
+
+** demande_transfert_visa {
+					id_demande_transfert_visa FK(demande) PK,
+					id_passeport FK(passeport),	
+					id_demande_nouveau_titre_source FK(demande_nouveau_titre)
+
+}
+
+
+ 
