@@ -228,8 +228,8 @@
                 left.appendChild(info);
 
                 const state = document.createElement("span");
-                state.className = "piece-state " + (piece.fournie ? "is-ok" : "is-missing");
-                state.textContent = piece.fournie ? "Fournie" : "Non fournie";
+                state.className = "piece-state is-ok";
+                state.textContent = "Piece jointe";
 
                 item.appendChild(left);
                 item.appendChild(state);

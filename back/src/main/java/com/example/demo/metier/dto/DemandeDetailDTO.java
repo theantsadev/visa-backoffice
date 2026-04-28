@@ -42,7 +42,6 @@ public record DemandeDetailDTO(
     public record PieceJointeDetailDTO(
             Integer idPieceJointe,
             Integer idPieceAFournir,
-            String nomPiece,
-            Boolean fournie) {
+            String nomPiece) {
     }
 }

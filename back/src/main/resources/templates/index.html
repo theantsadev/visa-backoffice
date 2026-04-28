@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -148,9 +148,9 @@
                 Cette page centralise les routes principales du projet : parcours utilisateur, saisie metier et soumission finale.
             </p>
             <div class="cta-row">
-                <a class="btn btn-primary" href="/demande/nouveau">Commencer une nouvelle demande</a>
-                <a class="btn btn-secondary" href="/demande/liste">Consulter les demandes</a>
-                <a class="btn btn-secondary" href="/demande/confirmation">Voir la page de confirmation</a>
+                <a class="btn btn-primary" href="/demande/nouveau" th:href="@{/demande/nouveau}">Commencer une nouvelle demande</a>
+                <a class="btn btn-secondary" href="/demande/liste" th:href="@{/demande/liste}">Consulter les demandes</a>
+                <a class="btn btn-secondary" href="/demande/confirmation" th:href="@{/demande/confirmation}">Voir la page de confirmation</a>
             </div>
         </section>
 

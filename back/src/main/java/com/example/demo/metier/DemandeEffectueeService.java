@@ -93,20 +93,38 @@ public class DemandeEffectueeService {
         }
 
         Demandeur demandeur = demandeurRepository.findById(dto.getIdDemandeur())
-                .orElseThrow(() -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
 
         Passport passport = passportRepository.findById(dto.getIdPassport())
-                .orElseThrow(() -> new IllegalArgumentException("Passeport introuvable pour id=" + dto.getIdPassport()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Passeport introuvable pour id=" + dto.getIdPassport()));
+
+        if (passport.getDemandeur() == null || !dto.getIdDemandeur().equals(passport.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le passeport selectionne n'appartient pas au demandeur.");
+        }
 
         VisaTransformable visaTransformable = visaTransformableRepository.findById(dto.getIdVisaTransformable())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Visa transformable introuvable pour id=" + dto.getIdVisaTransformable()));
 
+        if (visaTransformable.getDemandeur() == null
+                || !dto.getIdDemandeur().equals(visaTransformable.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au demandeur.");
+        }
+
+        if (visaTransformable.getPassport() == null
+                || !dto.getIdPassport().equals(visaTransformable.getPassport().getIdPassport())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au passeport.");
+        }
+
         TypeVisa typeVisa = typeVisaRepository.findById(dto.getIdTypeVisa())
-                .orElseThrow(() -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
 
         TypeDemande typeDemande = typeDemandeRepository.findById(dto.getIdTypeDemande())
-                .orElseThrow(() -> new IllegalArgumentException("Type de demande introuvable pour id=" + dto.getIdTypeDemande()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Type de demande introuvable pour id=" + dto.getIdTypeDemande()));
 
         validerPiecesObligatoires(dto.getPiecesJointes(), dto.getIdTypeVisa(), dto.getIdTypeDemande());
 
@@ -121,7 +139,8 @@ public class DemandeEffectueeService {
         DemandeEffectue demandeCreee = demandeEffectueRepository.save(demande);
 
         StatutDemande statutCree = statutDemandeRepository.findById(ID_STATUT_DOSSIER_CREE)
-            .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Statut introuvable pour id=" + ID_STATUT_DOSSIER_CREE));
 
         HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
         historique.setIdDemandeEffectuee(demandeCreee.getId());
@@ -146,18 +165,17 @@ public class DemandeEffectueeService {
         List<DemandeDTO.PieceJointeDTO> safePieces = pieces == null ? Collections.emptyList() : pieces;
 
         Set<Integer> piecesFournies = safePieces.stream()
-                .filter(piece -> Boolean.TRUE.equals(piece.getFournie()))
                 .map(DemandeDTO.PieceJointeDTO::getIdPieceAFournir)
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
 
         List<PieceAFournir> piecesObligatoires = pieceAFournirRepository.findPiecesObligatoires(
-            idTypeVisa,
-            idTypeDemande);
+                idTypeVisa);
 
         for (PieceAFournir pieceObligatoire : piecesObligatoires) {
             if (!piecesFournies.contains(pieceObligatoire.getId())) {
-                throw new IllegalArgumentException("Piece obligatoire manquante (id=" + pieceObligatoire.getId() + ").");
+                throw new IllegalArgumentException(
+                        "Piece obligatoire manquante (id=" + pieceObligatoire.getId() + ").");
             }
         }
     }
@@ -172,12 +190,11 @@ public class DemandeEffectueeService {
         }
 
         for (DemandeDTO.PieceJointeDTO piece : pieces) {
-            if (piece == null || !Boolean.TRUE.equals(piece.getFournie()) || piece.getIdPieceAFournir() == null) {
+            if (piece == null || piece.getIdPieceAFournir() == null) {
                 continue;
             }
 
             PieceJointe pieceJointe = new PieceJointe();
-            pieceJointe.setFournie(true);
             pieceJointe.setIdPieceAFournir(piece.getIdPieceAFournir());
             pieceJointe.setIdDemandeEffectuee(idDemande);
             pieceJointeRepository.save(pieceJointe);
