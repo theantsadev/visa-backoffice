@@ -100,9 +100,23 @@ public class DemandeEffectueeService {
                 .orElseThrow(
                         () -> new IllegalArgumentException("Passeport introuvable pour id=" + dto.getIdPassport()));
 
+        if (passport.getDemandeur() == null || !dto.getIdDemandeur().equals(passport.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le passeport selectionne n'appartient pas au demandeur.");
+        }
+
         VisaTransformable visaTransformable = visaTransformableRepository.findById(dto.getIdVisaTransformable())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Visa transformable introuvable pour id=" + dto.getIdVisaTransformable()));
+
+        if (visaTransformable.getDemandeur() == null
+                || !dto.getIdDemandeur().equals(visaTransformable.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au demandeur.");
+        }
+
+        if (visaTransformable.getPassport() == null
+                || !dto.getIdPassport().equals(visaTransformable.getPassport().getIdPassport())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au passeport.");
+        }
 
         TypeVisa typeVisa = typeVisaRepository.findById(dto.getIdTypeVisa())
                 .orElseThrow(
@@ -151,7 +165,6 @@ public class DemandeEffectueeService {
         List<DemandeDTO.PieceJointeDTO> safePieces = pieces == null ? Collections.emptyList() : pieces;
 
         Set<Integer> piecesFournies = safePieces.stream()
-                .filter(piece -> Boolean.TRUE.equals(piece.getFournie()))
                 .map(DemandeDTO.PieceJointeDTO::getIdPieceAFournir)
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
@@ -177,12 +190,11 @@ public class DemandeEffectueeService {
         }
 
         for (DemandeDTO.PieceJointeDTO piece : pieces) {
-            if (piece == null || !Boolean.TRUE.equals(piece.getFournie()) || piece.getIdPieceAFournir() == null) {
+            if (piece == null || piece.getIdPieceAFournir() == null) {
                 continue;
             }
 
             PieceJointe pieceJointe = new PieceJointe();
-            pieceJointe.setFournie(true);
             pieceJointe.setIdPieceAFournir(piece.getIdPieceAFournir());
             pieceJointe.setIdDemandeEffectuee(idDemande);
             pieceJointeRepository.save(pieceJointe);

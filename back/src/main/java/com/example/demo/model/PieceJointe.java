@@ -18,8 +18,7 @@ public class PieceJointe {
     @Column(name = "id_piece_jointe")
     private Integer id;
 
-    @Column(name = "fournie")
-    private Boolean fournie;
+
 
     @Column(name = "id_piece_a_fournir")
     private Integer idPieceAFournir;

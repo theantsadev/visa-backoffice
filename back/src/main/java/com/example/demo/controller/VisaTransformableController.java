@@ -21,7 +21,8 @@ public class VisaTransformableController {
     }
 
     @PostMapping("/{idPassport}/visas-transformables")
-    public VisaTransformable creerVisaTransformable(@PathVariable Integer idPassport, @RequestBody VisaTransformableDTO dto) {
+    public VisaTransformable creerVisaTransformable(@PathVariable Integer idPassport,
+            @RequestBody VisaTransformableDTO dto) {
         return visaTransformableService.creerVisaTransformable(dto, idPassport);
     }
 }

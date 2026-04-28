@@ -1,28 +1,37 @@
 package com.example.demo.controller;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class DemandeUiController {
 
-    @GetMapping("/")
-    public String accueil() {
-        return "forward:/index.html";
+    @GetMapping({ "/", "/index.html" })
+    public String accueil(Model model) {
+        prepareViewModel(model);
+        return "index";
     }
 
-    @GetMapping("/demande/nouveau")
-    public String nouveauParcours() {
-        return "forward:/demande-nouveau.html";
+    @GetMapping({ "/demande/nouveau", "/demande-nouveau.html" })
+    public String nouveauParcours(Model model) {
+        prepareViewModel(model);
+        return "demande-nouveau";
     }
 
-    @GetMapping("/demande/confirmation")
-    public String confirmationParcours() {
-        return "forward:/demande-confirmation.html";
+    @GetMapping({ "/demande/confirmation", "/demande-confirmation.html" })
+    public String confirmationParcours(Model model) {
+        prepareViewModel(model);
+        return "demande-confirmation";
     }
 
-    @GetMapping("/demande/liste")
-    public String listeDemandes() {
-        return "forward:/demande-liste.html";
+    @GetMapping({ "/demande/liste", "/demande-liste.html" })
+    public String listeDemandes(Model model) {
+        prepareViewModel(model);
+        return "demande-liste";
+    }
+
+    private void prepareViewModel(Model model) {
+        model.addAttribute("cacheBuster", System.currentTimeMillis());
     }
 }
