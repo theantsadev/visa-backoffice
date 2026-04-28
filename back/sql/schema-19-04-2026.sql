@@ -120,7 +120,6 @@ CREATE TABLE
 CREATE TABLE
    piece_jointe (
       id_piece_jointe SERIAL,
-      fournie BOOLEAN,
       id_piece_a_fournir INTEGER NOT NULL,
       id_demande_effectuee INTEGER NOT NULL,
       PRIMARY KEY (id_piece_jointe),
@@ -196,35 +195,80 @@ INSERT INTO
       id_type_visa
    )
 VALUES
-   (1, '2 photos identite', TRUE, NULL, NULL),
-   (2, 'Extrait casier judiciaire', TRUE, NULL, NULL),
-   (3, 'Notice de renseignement', TRUE, NULL, NULL),
+   (1, '02 photos d''identite', TRUE, NULL, NULL),
+   (2, 'Notice de renseignement', TRUE, NULL, NULL),
    (
-      4,
-      'Photocopie certifiee passeport',
+      3,
+      'Demande adressee a M. le Ministre de l''Interieur avec e-mail et telephone portable',
       TRUE,
       NULL,
       NULL
    ),
-   (5, 'Certificat de residence', TRUE, NULL, NULL),
-   (6, 'Autorisation emploi', TRUE, NULL, 1),
    (
-      7,
-      'Attestation d''emploi (original)',
+      4,
+      'Photocopie certifiee du visa en cours de validite',
+      TRUE,
+      NULL,
+      NULL
+   ),
+   (
+      5,
+      'Photocopie certifiee de la premiere page du passeport',
+      TRUE,
+      NULL,
+      NULL
+   ),
+   (
+      6,
+      'Photocopie certifiee de la carte resident en cours de validite',
+      TRUE,
+      NULL,
+      NULL
+   ),
+   (7, 'Certificat de residence a Madagascar', TRUE, NULL, NULL),
+   (8, 'Extrait de casier judiciaire de moins de 3 mois', TRUE, NULL, NULL),
+   (9, 'Statut de la societe', TRUE, NULL, 2),
+   (
+      10,
+      'Extrait d''inscription au registre de commerce',
+      TRUE,
+      NULL,
+      2
+   ),
+   (11, 'Carte fiscale', TRUE, NULL, 2),
+   (
+      12,
+      'Autorisation emploi delivree a Madagascar',
       TRUE,
       NULL,
       1
    ),
-   (8, 'Statut de la societe', TRUE, NULL, 2),
-   (9, 'Extrait registre de commerce', TRUE, NULL, 2),
-   (10, 'Carte fiscale', TRUE, NULL, 2),
-   (11, 'Declaration perte/vol', TRUE, 2, NULL),
-   (12, 'Ancien passeport', TRUE, 3, NULL),
    (
       13,
-      'Photocopie visa transformable',
+      'Attestation d''emploi delivree par l''employeur (original)',
       TRUE,
-      1,
+      NULL,
+      1
+   ),
+   (
+      14,
+      'Acte de naissance (enfant) ou acte de mariage (livret de famille)',
+      TRUE,
+      NULL,
       NULL
+   ),
+   (
+      15,
+      'Justificatif de ressources pour regroupement familial',
+      TRUE,
+      NULL,
+      NULL
+   ),
+   (
+      16,
+      'Autorisation emploi pour le regroupement familial des travailleurs',
+      TRUE,
+      NULL,
+      1
    );
 

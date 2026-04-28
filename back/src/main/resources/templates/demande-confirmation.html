@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/ui/demande.css">
+    <link rel="stylesheet" href="/css/demande.css" th:href="@{/css/demande.css(v=${cacheBuster})}">
 </head>
 <body>
     <main class="page-shell">
@@ -29,9 +29,9 @@
                 </div>
             </div>
             <div class="cta-row" style="justify-content:center;">
-                <a href="/" class="btn btn-outline">Retour a la page d'accueil</a>
-                <a href="/demande/liste" class="btn btn-ghost">Consulter les demandes</a>
-                <a href="/demande/nouveau" class="btn btn-primary">Nouvelle demande</a>
+                <a href="/" class="btn btn-outline" th:href="@{/}">Retour a la page d'accueil</a>
+                <a href="/demande/liste" class="btn btn-ghost" th:href="@{/demande/liste}">Consulter les demandes</a>
+                <a href="/demande/nouveau" class="btn btn-primary" th:href="@{/demande/nouveau}">Nouvelle demande</a>
             </div>
         </section>
     </main>
