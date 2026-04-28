@@ -115,6 +115,7 @@
 
                 <div class="step-panel" data-step-panel="3">
                     <h2>Etape 3 - Visa transformable</h2>
+                    <p class="hint">Optionnel si la demande est sans donnees anterieures.</p>
                     <div class="grid two">
                         <label>Reference visa *
                             <input name="referenceVisa" required>
@@ -147,6 +148,17 @@
                                 <option value="">Selectionner</option>
                             </select>
                         </label>
+                    </div>
+                    <div class="inline-check" id="sansDonneesWrapper" hidden>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="sansDonnees">
+                            Sans donnees anterieures
+                        </label>
+                        <p class="hint">Dans ce mode, le visa transformable n'est pas requis.</p>
+                    </div>
+                    <div class="request-note" id="transfertNote" hidden>
+                        <strong>Transfert</strong>
+                        <span>Le passeport saisi a l'etape 2 sera utilise comme nouveau passeport.</span>
                     </div>
                 </div>
 

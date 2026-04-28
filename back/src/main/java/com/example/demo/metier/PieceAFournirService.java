@@ -23,13 +23,16 @@ public class PieceAFournirService {
         this.pieceAFournirRepository = pieceAFournirRepository;
     }
 
-    public List<PieceAFournirParVisaDTO> getPiecesParTypeVisa(Integer idTypeVisa) {
+    public List<PieceAFournirParVisaDTO> getPiecesParTypeVisa(Integer idTypeVisa, Integer idTypeDemande) {
         if (idTypeVisa == null) {
             throw new IllegalArgumentException("Le type de visa est obligatoire.");
         }
 
         List<PieceAFournir> piecesCommunes = pieceAFournirRepository.findByTypeVisaIsNullAndTypeDemandeIsNull();
         List<PieceAFournir> piecesSpecifiques = pieceAFournirRepository.findByTypeVisa_IdTypeVisa(idTypeVisa);
+        List<PieceAFournir> piecesDemande = idTypeDemande == null
+                ? List.of()
+                : pieceAFournirRepository.findByTypeDemande_IdTypeDemande(idTypeDemande);
 
         Map<Integer, PieceAFournirParVisaDTO> piecesFusionnees = new LinkedHashMap<>();
 
@@ -38,6 +41,10 @@ public class PieceAFournirService {
         }
 
         for (PieceAFournir piece : piecesSpecifiques) {
+            piecesFusionnees.put(piece.getId(), toDto(piece, CATEGORIE_SPECIFIQUE));
+        }
+
+        for (PieceAFournir piece : piecesDemande) {
             piecesFusionnees.put(piece.getId(), toDto(piece, CATEGORIE_SPECIFIQUE));
         }
 

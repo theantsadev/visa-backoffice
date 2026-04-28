@@ -14,6 +14,9 @@
     const quickDemandeur = document.getElementById("quickDemandeur");
     const quickPassport = document.getElementById("quickPassport");
     const quickVisa = document.getElementById("quickVisa");
+    const sansDonnees = document.getElementById("sansDonnees");
+    const sansDonneesWrapper = document.getElementById("sansDonneesWrapper");
+    const transfertNote = document.getElementById("transfertNote");
     const confirmationUrl = form.dataset.confirmationUrl || "/demande/confirmation";
     const AUTOSAVE_KEY = "demande-nouveau-autosave-v1";
     const AUTOSAVE_STEP_MAX = 5;
@@ -165,6 +168,9 @@
             return required("[name='numero']", "Numero de passeport");
         }
         if (step === 3) {
+            if (isSansDonneesChecked()) {
+                return null;
+            }
             return required("[name='referenceVisa']", "Reference visa")
                 || required("[name='dateEntreeMada']", "Date entree Madagascar");
         }
@@ -189,6 +195,44 @@
     function toNumber(name) {
         const value = getValue(name);
         return value ? Number(value) : null;
+    }
+
+    function getIdTypeDemande() {
+        return toNumber("idTypeDemande");
+    }
+
+    function isSansDonneesChecked() {
+        return Boolean(sansDonnees && sansDonnees.checked);
+    }
+
+    function isDemandeDuplicata() {
+        return getIdTypeDemande() === 2;
+    }
+
+    function isDemandeTransfert() {
+        return getIdTypeDemande() === 3;
+    }
+
+    function updateDemandeTypeUi() {
+        const showSansDonnees = isDemandeDuplicata() || isDemandeTransfert();
+        if (sansDonneesWrapper) {
+            sansDonneesWrapper.hidden = !showSansDonnees;
+        }
+
+        if (!showSansDonnees && sansDonnees) {
+            sansDonnees.checked = false;
+        }
+
+        if (transfertNote) {
+            transfertNote.hidden = !isDemandeTransfert();
+        }
+
+        if (quickVisa) {
+            quickVisa.disabled = isSansDonneesChecked();
+            if (isSansDonneesChecked()) {
+                quickVisa.value = "";
+            }
+        }
     }
 
     function getCategorieLabel(categorie) {
@@ -426,7 +470,8 @@
             throw new Error("Type de visa et type de demande requis pour charger les pieces.");
         }
 
-        const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + idTypeVisa);
+        const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + idTypeVisa
+            + "&typeDemande=" + idTypeDemande);
 
         const previousSelection = new Map(
             state.piecesSelection.map((item) => [item.idPieceAFournir, Boolean(item.selected)])
@@ -553,29 +598,66 @@
         const passportResponse = await postJson("/api/demandeurs/" + state.idDemandeur + "/passports", passport);
         state.idPassport = passportResponse.idPassport;
 
-        const visa = {
-            referenceVisa: getValue("referenceVisa"),
-            natureVisa: getValue("natureVisa") || null,
-            dateEntreeMada: getValue("dateEntreeMada"),
-            lieuEntreeMada: getValue("lieuEntreeMada") || null,
-            dateSortie: getValue("dateSortie") || null
-        };
+        const idTypeVisa = toNumber("idTypeVisa");
+        const idTypeDemande = toNumber("idTypeDemande");
+        const sansDonneesMode = isSansDonneesChecked();
+        const piecesCible = state.piecesSelection
+            .filter((p) => p.selected)
+            .map((p) => ({ idPieceAFournir: p.idPieceAFournir }));
 
-        const visaResponse = await postJson("/api/passports/" + state.idPassport + "/visas-transformables", visa);
-        state.idVisaTransformable = visaResponse.id;
+        let soumission;
 
-        const demande = {
-            idDemandeur: state.idDemandeur,
-            idPassport: state.idPassport,
-            idVisaTransformable: state.idVisaTransformable,
-            idTypeVisa: toNumber("idTypeVisa"),
-            idTypeDemande: toNumber("idTypeDemande"),
-            piecesJointes: state.piecesSelection
-                .filter((p) => p.selected)
-                .map((p) => ({ idPieceAFournir: p.idPieceAFournir }))
-        };
+        if (sansDonneesMode) {
+            const demandeNouveauTitre = {
+                idDemandeur: state.idDemandeur,
+                idPassport: state.idPassport,
+                idVisaTransformable: null,
+                idTypeVisa: idTypeVisa,
+                idTypeDemande: 1,
+                piecesJointes: []
+            };
 
-        const soumission = await postJson("/api/demandes/nouveau-titre", demande);
+            if (idTypeDemande === 2) {
+                soumission = await postJson("/api/demandes/duplicata/sans-donnees", {
+                    demandeNouveauTitre: demandeNouveauTitre,
+                    piecesCible: piecesCible
+                });
+            } else if (idTypeDemande === 3) {
+                soumission = await postJson("/api/demandes/transfert/sans-donnees", {
+                    demandeNouveauTitre: demandeNouveauTitre,
+                    idPassportNouveau: state.idPassport,
+                    piecesCible: piecesCible
+                });
+            } else {
+                throw new Error("Le type de demande selectionne n'est pas compatible avec ce mode.");
+            }
+        } else {
+            if (idTypeDemande !== 1) {
+                throw new Error("Veuillez activer 'sans donnees anterieures' pour ce type de demande.");
+            }
+
+            const visa = {
+                referenceVisa: getValue("referenceVisa"),
+                natureVisa: getValue("natureVisa") || null,
+                dateEntreeMada: getValue("dateEntreeMada"),
+                lieuEntreeMada: getValue("lieuEntreeMada") || null,
+                dateSortie: getValue("dateSortie") || null
+            };
+
+            const visaResponse = await postJson("/api/passports/" + state.idPassport + "/visas-transformables", visa);
+            state.idVisaTransformable = visaResponse.id;
+
+            const demande = {
+                idDemandeur: state.idDemandeur,
+                idPassport: state.idPassport,
+                idVisaTransformable: state.idVisaTransformable,
+                idTypeVisa: idTypeVisa,
+                idTypeDemande: idTypeDemande,
+                piecesJointes: piecesCible
+            };
+
+            soumission = await postJson("/api/demandes/nouveau-titre", demande);
+        }
         const query = new URLSearchParams({
             id: String(soumission.id || ""),
             statut: String(soumission.statut || ""),
@@ -731,12 +813,29 @@
             await loadQuickDemandeurs();
             await restoreQuickSelections();
 
+            updateDemandeTypeUi();
+
             if (currentStep === 5 && state.piecesSelection.length) {
                 await buildPieces();
             }
         } catch (e) {
             setMessage("Impossible de charger les donnees de reference: " + (e.message || "erreur inconnue"));
         }
+    }
+
+    const typeDemandeSelect = form.querySelector("[name='idTypeDemande']");
+    if (typeDemandeSelect) {
+        typeDemandeSelect.addEventListener("change", () => {
+            updateDemandeTypeUi();
+            saveAutosave();
+        });
+    }
+
+    if (sansDonnees) {
+        sansDonnees.addEventListener("change", () => {
+            updateDemandeTypeUi();
+            saveAutosave();
+        });
     }
 
     init();
