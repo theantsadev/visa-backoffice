@@ -37,7 +37,7 @@ CREATE TABLE
 CREATE TABLE
    piece_a_fournir (
       id_piece_a_fournir SERIAL,
-      nom VARCHAR(50),
+      nom VARCHAR(500),
       obligatoire BOOLEAN DEFAULT TRUE,
       id_type_demande INTEGER,
       id_type_visa INTEGER,

@@ -1,12 +1,12 @@
 INSERT INTO
-    piece_jointe (id_piece_a_fournir, id_demande_effectuee)
+    piece_jointe (id_piece_a_fournir, id_demande)
 VALUES
     (7, 2);
 
 DELETE FROM Piece_jointe;
 
 SELECT
-    id_demande_effectuee,
+    id_demande,
     id_piece_a_fournir
 FROM
     Piece_jointe;
