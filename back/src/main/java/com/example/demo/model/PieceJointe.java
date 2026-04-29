@@ -23,6 +23,9 @@ public class PieceJointe {
     @Column(name = "id_piece_a_fournir")
     private Integer idPieceAFournir;
 
+    @Column(name = "lien")
+    private String lien;
+
     @Column(name = "id_demande")
     private Integer idDemande;
 }

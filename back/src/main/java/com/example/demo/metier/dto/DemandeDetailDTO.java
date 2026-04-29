@@ -42,6 +42,7 @@ public record DemandeDetailDTO(
     public record PieceJointeDetailDTO(
             Integer idPieceJointe,
             Integer idPieceAFournir,
-            String nomPiece) {
+            String nomPiece,
+            String lien) {
     }
 }

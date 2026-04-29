@@ -92,7 +92,8 @@ public class DemandeListeService {
                 .map(piece -> new DemandeDetailDTO.PieceJointeDetailDTO(
                         piece.getId(),
                         piece.getIdPieceAFournir(),
-                        nomsPiecesParId.get(piece.getIdPieceAFournir())))
+                nomsPiecesParId.get(piece.getIdPieceAFournir()),
+                piece.getLien()))
                 .toList();
 
         return new DemandeDetailDTO(

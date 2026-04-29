@@ -1,13 +1,22 @@
 package com.example.demo.metier;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.metier.dto.DemandeDTO;
 import com.example.demo.metier.dto.DemandeSoumiseDTO;
@@ -61,6 +70,7 @@ public class DemandeEffectueeService {
     private final HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
     private final PieceAFournirRepository pieceAFournirRepository;
     private final PieceJointeRepository pieceJointeRepository;
+    private final Path uploadRoot;
 
     public DemandeEffectueeService(
             DemandeurRepository demandeurRepository,
@@ -75,7 +85,8 @@ public class DemandeEffectueeService {
             DemandeTransfertVisaRepository demandeTransfertVisaRepository,
             HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository,
             PieceAFournirRepository pieceAFournirRepository,
-            PieceJointeRepository pieceJointeRepository) {
+            PieceJointeRepository pieceJointeRepository,
+            @Value("${app.upload-dir:uploads/pieces-jointes}") String uploadDir) {
         this.demandeurRepository = demandeurRepository;
         this.passportRepository = passportRepository;
         this.visaTransformableRepository = visaTransformableRepository;
@@ -89,10 +100,11 @@ public class DemandeEffectueeService {
         this.historiqueStatutDemandeRepository = historiqueStatutDemandeRepository;
         this.pieceAFournirRepository = pieceAFournirRepository;
         this.pieceJointeRepository = pieceJointeRepository;
+        this.uploadRoot = Path.of(uploadDir);
     }
 
     @Transactional
-    public DemandeSoumiseDTO soumettreDemande(DemandeDTO dto) {
+    public DemandeSoumiseDTO soumettreDemande(DemandeDTO dto, List<MultipartFile> files) {
         if (dto == null) {
             throw new IllegalArgumentException("La demande est obligatoire.");
         }
@@ -157,14 +169,15 @@ public class DemandeEffectueeService {
                 ID_TYPE_DEMANDE_NOUVEAU_TITRE,
                 statut.getId());
 
-        savePiecesJointes(dto.getPiecesJointes(), demandeCreee.getId());
+        savePiecesJointes(dto.getPiecesJointes(), files, demandeCreee.getId());
 
         return new DemandeSoumiseDTO(demandeCreee.getId(), statut.getLibelle(), demandeCreee.getDateDemande());
     }
 
     @Transactional
     public DemandeSoumiseDTO soumettreDuplicataSansDonnees(DemandeDTO dtoNouveauTitre,
-            List<DemandeDTO.PieceJointeDTO> piecesCible) {
+            List<DemandeDTO.PieceJointeDTO> piecesCible,
+            List<MultipartFile> files) {
         if (dtoNouveauTitre == null) {
             throw new IllegalArgumentException("La demande nouveau titre est obligatoire.");
         }
@@ -181,7 +194,7 @@ public class DemandeEffectueeService {
         duplicata.setDemandeNouveauTitreSource(getDemandeNouveauTitre(demandeSource));
         demandeDuplicataCarteResidentRepository.save(duplicata);
 
-        savePiecesJointes(piecesCible, demandeCible.getId());
+        savePiecesJointes(piecesCible, files, demandeCible.getId());
 
         return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
     }
@@ -189,7 +202,8 @@ public class DemandeEffectueeService {
     @Transactional
     public DemandeSoumiseDTO soumettreTransfertSansDonnees(DemandeDTO dtoNouveauTitre,
             Integer idPassportNouveau,
-            List<DemandeDTO.PieceJointeDTO> piecesCible) {
+            List<DemandeDTO.PieceJointeDTO> piecesCible,
+            List<MultipartFile> files) {
         if (dtoNouveauTitre == null) {
             throw new IllegalArgumentException("La demande nouveau titre est obligatoire.");
         }
@@ -218,7 +232,7 @@ public class DemandeEffectueeService {
         transfert.setDemandeNouveauTitreSource(getDemandeNouveauTitre(demandeSource));
         demandeTransfertVisaRepository.save(transfert);
 
-        savePiecesJointes(piecesCible, demandeCible.getId());
+        savePiecesJointes(piecesCible, files, demandeCible.getId());
 
         return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
     }
@@ -399,24 +413,61 @@ public class DemandeEffectueeService {
         return demandeNouveauTitreRepository.findById(demande.getId()).orElse(null);
     }
 
-    public void savePiecesJointes(List<DemandeDTO.PieceJointeDTO> pieces, Integer idDemande) {
+    public void savePiecesJointes(List<DemandeDTO.PieceJointeDTO> pieces,
+            List<MultipartFile> files,
+            Integer idDemande) {
         if (idDemande == null) {
             throw new IllegalArgumentException("L'id de la demande est obligatoire.");
         }
 
-        if (pieces == null || pieces.isEmpty()) {
+        List<DemandeDTO.PieceJointeDTO> safePieces = pieces == null ? Collections.emptyList() : pieces;
+        if (safePieces.isEmpty()) {
             return;
         }
 
-        for (DemandeDTO.PieceJointeDTO piece : pieces) {
+        List<MultipartFile> safeFiles = files == null ? Collections.emptyList() : files;
+        if (safePieces.size() != safeFiles.size()) {
+            throw new IllegalArgumentException("Chaque piece jointe doit avoir un fichier associe.");
+        }
+
+        for (int index = 0; index < safePieces.size(); index++) {
+            DemandeDTO.PieceJointeDTO piece = safePieces.get(index);
+            MultipartFile file = safeFiles.get(index);
             if (piece == null || piece.getIdPieceAFournir() == null) {
-                continue;
+                throw new IllegalArgumentException("Chaque piece jointe doit avoir un identifiant valide.");
+            }
+            if (file == null || file.isEmpty()) {
+                throw new IllegalArgumentException("Le fichier de la piece jointe est obligatoire.");
             }
 
+            String lien = enregistrerFichierPieceJointe(idDemande, piece.getIdPieceAFournir(), file);
             PieceJointe pieceJointe = new PieceJointe();
             pieceJointe.setIdPieceAFournir(piece.getIdPieceAFournir());
             pieceJointe.setIdDemande(idDemande);
+            pieceJointe.setLien(lien);
             pieceJointeRepository.save(pieceJointe);
+        }
+    }
+
+    private String enregistrerFichierPieceJointe(Integer idDemande, Integer idPieceAFournir, MultipartFile file) {
+        try {
+            Path dossierDemande = uploadRoot.resolve(String.valueOf(idDemande));
+            Files.createDirectories(dossierDemande);
+
+            String nomOriginal = StringUtils.cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
+            String nomBase = Paths.get(nomOriginal).getFileName().toString();
+            if (nomBase.isBlank()) {
+                nomBase = "piece";
+            }
+
+            String nomSecurise = nomBase.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String nomStocke = idPieceAFournir + "-" + UUID.randomUUID() + "-" + nomSecurise;
+            Path destination = dossierDemande.resolve(nomStocke);
+
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/" + idDemande + "/" + nomStocke;
+        } catch (IOException e) {
+            throw new IllegalStateException("Impossible d'enregistrer le fichier de piece jointe.", e);
         }
     }
 }

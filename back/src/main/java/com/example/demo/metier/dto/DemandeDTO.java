@@ -16,5 +16,6 @@ public class DemandeDTO {
     @Data
     public static class PieceJointeDTO {
         private Integer idPieceAFournir;
+        private String lien;
     }
 }

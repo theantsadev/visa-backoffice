@@ -1,9 +1,14 @@
 package com.example.demo.controller;
 
+import java.util.List;
+
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.metier.DemandeEffectueeService;
 import com.example.demo.metier.dto.DemandeDTO;
@@ -21,24 +26,28 @@ public class DemandeController {
         this.demandeEffectueeService = demandeEffectueeService;
     }
 
-    @PostMapping("/nouveau-titre")
-    public DemandeSoumiseDTO soumettreDemande(@RequestBody DemandeDTO dto) {
-        return demandeEffectueeService.soumettreDemande(dto);
+    @PostMapping(value = "/nouveau-titre", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DemandeSoumiseDTO soumettreDemande(@RequestPart("dto") DemandeDTO dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        return demandeEffectueeService.soumettreDemande(dto, files);
     }
 
-    @PostMapping("/duplicata/sans-donnees")
-    public DemandeSoumiseDTO soumettreDuplicataSansDonnees(@RequestBody DemandeDuplicataSansDonneesDTO dto) {
+    @PostMapping(value = "/duplicata/sans-donnees", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DemandeSoumiseDTO soumettreDuplicataSansDonnees(@RequestPart("dto") DemandeDuplicataSansDonneesDTO dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         if (dto == null) {
             throw new IllegalArgumentException("La demande est obligatoire.");
         }
 
         return demandeEffectueeService.soumettreDuplicataSansDonnees(
                 dto.getDemandeNouveauTitre(),
-                dto.getPiecesCible());
+                dto.getPiecesCible(),
+                files);
     }
 
-    @PostMapping("/transfert/sans-donnees")
-    public DemandeSoumiseDTO soumettreTransfertSansDonnees(@RequestBody DemandeTransfertSansDonneesDTO dto) {
+    @PostMapping(value = "/transfert/sans-donnees", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DemandeSoumiseDTO soumettreTransfertSansDonnees(@RequestPart("dto") DemandeTransfertSansDonneesDTO dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         if (dto == null) {
             throw new IllegalArgumentException("La demande est obligatoire.");
         }
@@ -46,6 +55,7 @@ public class DemandeController {
         return demandeEffectueeService.soumettreTransfertSansDonnees(
                 dto.getDemandeNouveauTitre(),
                 dto.getIdPassportNouveau(),
-                dto.getPiecesCible());
+                dto.getPiecesCible(),
+                files);
     }
 }
