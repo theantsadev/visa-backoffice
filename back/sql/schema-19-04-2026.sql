@@ -162,6 +162,7 @@ CREATE TABLE
    piece_jointe (
       id_piece_jointe SERIAL,
       id_piece_a_fournir INTEGER NOT NULL,
+      lien TEXT,
       id_demande INTEGER NOT NULL,
       PRIMARY KEY (id_piece_jointe),
       FOREIGN KEY (id_piece_a_fournir) REFERENCES piece_a_fournir (id_piece_a_fournir),

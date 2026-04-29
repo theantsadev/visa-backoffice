@@ -22,3 +22,5 @@ ALTER TABLE Piece_jointe DROP COLUMN fournie;
 
 ALTER TABLE piece_a_fournir DROP COLUMN nom ;
 ALTER TABLE piece_a_fournir ADD COLUMN nom TEXT ;
+
+Drop DATABASE GESTION_VISA;

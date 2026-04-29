@@ -229,7 +229,17 @@
 
                 const state = document.createElement("span");
                 state.className = "piece-state is-ok";
-                state.textContent = "Piece jointe";
+                    if (piece.lien) {
+                        const link = document.createElement("a");
+                        link.className = "piece-link";
+                        link.href = piece.lien;
+                        link.target = "_blank";
+                        link.rel = "noopener noreferrer";
+                        link.textContent = "Ouvrir le fichier";
+                        state.appendChild(link);
+                    } else {
+                        state.textContent = "Piece jointe";
+                    }
 
                 item.appendChild(left);
                 item.appendChild(state);

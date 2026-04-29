@@ -190,9 +190,9 @@
                 || required("[name='dateEntreeMada']", "Date entree Madagascar");
         }
         if (step === 5) {
-            const missing = state.piecesSelection.filter((p) => p.obligatoire && !p.selected);
+            const missing = state.piecesSelection.filter((p) => p.obligatoire && !p.file);
             if (missing.length > 0) {
-                return "Toutes les pieces obligatoires doivent etre cochees.";
+                return "Toutes les pieces obligatoires doivent avoir un fichier.";
             }
         }
         return null;
@@ -523,6 +523,8 @@
         state.piecesSelection = rows.map((piece) => ({
             idPieceAFournir: piece.idPieceAFournir,
             selected: Boolean(previousSelection.get(piece.idPieceAFournir)),
+            file: null,
+            fileName: "",
             obligatoire: Boolean(piece.obligatoire)
         }));
 
@@ -537,6 +539,7 @@
             wrapper.className = "piece-row";
 
             const left = document.createElement("div");
+            left.className = "piece-row-info";
             left.textContent = piece.nom;
 
             const tag = document.createElement("span");
@@ -544,20 +547,50 @@
             tag.textContent = getCategorieLabel(piece.categorie) + ' | ' + getTypeLabel(piece.obligatoire);
             left.appendChild(tag);
 
-            const check = document.createElement("input");
-            check.type = "checkbox";
-            check.checked = Boolean(previousSelection.get(piece.idPieceAFournir));
-            check.addEventListener("change", () => {
+            const upload = document.createElement("div");
+            upload.className = "piece-upload";
+
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.zip";
+            input.addEventListener("change", () => {
                 const item = state.piecesSelection.find((p) => p.idPieceAFournir === piece.idPieceAFournir);
                 if (item) {
-                    item.selected = check.checked;
+                    item.file = input.files && input.files.length > 0 ? input.files[0] : null;
+                    item.fileName = item.file ? item.file.name : "";
                 }
+                fileName.textContent = item && item.fileName ? item.fileName : "Aucun fichier selectionne";
             });
 
+            const fileName = document.createElement("span");
+            fileName.className = "piece-filename";
+            fileName.textContent = "Aucun fichier selectionne";
+
             wrapper.appendChild(left);
-            wrapper.appendChild(check);
+            upload.appendChild(input);
+            upload.appendChild(fileName);
+            wrapper.appendChild(upload);
             piecesContainer.appendChild(wrapper);
         });
+    }
+
+    async function postMultipart(url, body, files) {
+        const formData = new FormData();
+        formData.append("dto", new Blob([JSON.stringify(body)], { type: "application/json" }));
+        (files || []).forEach((file) => {
+            formData.append("files", file, file.name);
+        });
+
+        const response = await fetch(url, {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw await buildApiError(response);
+        }
+
+        return response.json();
     }
 
     async function getJson(url) {
@@ -616,6 +649,13 @@
 
     async function submitFlow() {
         setMessage("Envoi en cours...");
+
+        const piecesJointes = state.piecesSelection
+            .filter((p) => p.file)
+            .map((p) => ({ idPieceAFournir: p.idPieceAFournir }));
+        const fichiersPieces = state.piecesSelection
+            .filter((p) => p.file)
+            .map((p) => p.file);
 
         const demandeur = {
             nom: getValue("nom"),
@@ -691,20 +731,20 @@
                 idVisaTransformable: idVisaTransformable,
                 idTypeVisa: idTypeVisa,
                 idTypeDemande: 1,
-                piecesJointes: []
+                piecesJointes: piecesJointes
             };
 
             if (idTypeDemande === 2) {
-                soumission = await postJson("/api/demandes/duplicata/sans-donnees", {
+                soumission = await postMultipart("/api/demandes/duplicata/sans-donnees", {
                     demandeNouveauTitre: demandeNouveauTitre,
-                    piecesCible: piecesCible
-                });
+                    piecesCible: piecesJointes
+                }, fichiersPieces);
             } else if (idTypeDemande === 3) {
-                soumission = await postJson("/api/demandes/transfert/sans-donnees", {
+                soumission = await postMultipart("/api/demandes/transfert/sans-donnees", {
                     demandeNouveauTitre: demandeNouveauTitre,
                     idPassportNouveau: idPassportNouveau,
-                    piecesCible: piecesCible
-                });
+                    piecesCible: piecesJointes
+                }, fichiersPieces);
             } else {
                 throw new Error("Le type de demande selectionne n'est pas compatible avec ce mode.");
             }
@@ -730,10 +770,10 @@
                 idVisaTransformable: state.idVisaTransformable,
                 idTypeVisa: idTypeVisa,
                 idTypeDemande: idTypeDemande,
-                piecesJointes: piecesCible
+                piecesJointes: piecesJointes
             };
 
-            soumission = await postJson("/api/demandes/nouveau-titre", demande);
+            soumission = await postMultipart("/api/demandes/nouveau-titre", demande, fichiersPieces);
         }
         const query = new URLSearchParams({
             id: String(soumission.id || ""),
@@ -893,7 +933,7 @@
             updateDemandeTypeUi();
             updateDemandeTitle();
 
-            if (currentStep === 5 && state.piecesSelection.length) {
+            if (currentStep === 5) {
                 await buildPieces();
             }
         } catch (e) {

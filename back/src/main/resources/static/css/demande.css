@@ -202,6 +202,26 @@ select:focus {
     background: #fff;
 }
 
+.piece-row-info {
+    min-width: 0;
+}
+
+.piece-upload {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+}
+
+.piece-upload input[type="file"] {
+    max-width: 280px;
+}
+
+.piece-filename {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+}
+
 .piece-tag {
     display: inline-block;
     font-size: 12px;
@@ -496,6 +516,15 @@ select:focus {
 .piece-state.is-ok {
     color: #1f704b;
     background: #e8f7ef;
+}
+
+.piece-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.piece-link:hover {
+    text-decoration: underline;
 }
 
 .piece-state.is-missing {
