@@ -1,0 +1,14 @@
+Sprint 3 : upload de pieces jointes
+TL : jordi
+BO : vicky
+FO : mike
+
+
+Bdd :
+1) ajout de la colonne lien TEXT dans la table piece_jointe
+
+Ecran : 
+1) changement des checkbox par un input de type file pour chaque piece jointe (1 fichier par pj)
+
+Métier 
+
