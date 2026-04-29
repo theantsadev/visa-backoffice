@@ -13,8 +13,12 @@ BEGIN;
 TRUNCATE TABLE
     historique_statut_demande,
     piece_jointe,
-    demande_effectuee,
+    demande_transfert_visa,
+    demande_duplicata_carte_resident,
+    demande_nouveau_titre,
+    demande,
     visa_transformable,
+    carte_resident,
     visa,
     passport,
     demandeur,
@@ -22,7 +26,7 @@ TRUNCATE TABLE
     statut_demande,
     nationnalite,
     statut_familial,
-    type_demande_effectuee,
+    type_demande,
     type_visa
 RESTART IDENTITY CASCADE;
 
@@ -37,7 +41,7 @@ VALUES
     (2, 'Investisseur');
 
 -- Types de demande
-INSERT INTO type_demande_effectuee (id_type_demande_effectuee, libelle)
+INSERT INTO type_demande (id_type_demande, libelle)
 VALUES
     (1, 'Nouveau titre'),
     (2, 'Duplicata'),
@@ -47,9 +51,9 @@ VALUES
 INSERT INTO statut_demande (statut_demande, libelle)
 VALUES
     (1, 'Dossier cree'),
-    (2, 'En cours'),
-    (3, 'Accepte'),
-    (4, 'Rejete');
+    (2, 'Scan termine'),
+    (3, 'Visa accorde'),
+    (4, 'Visa rejete');
 
 -- Situation familiale
 INSERT INTO statut_familial (id_statut_familial, libelle)
@@ -66,14 +70,14 @@ VALUES
 
 -- Pieces a fournir
 -- Regles:
--- - commune a tous: id_type_visa = NULL et id_type_demande_effectuee = NULL
--- - specifique visa: id_type_visa renseigne, id_type_demande_effectuee = NULL
--- - specifique demande: id_type_demande_effectuee renseigne, id_type_visa = NULL
+-- - commune a tous: id_type_visa = NULL et id_type_demande = NULL
+-- - specifique visa: id_type_visa renseigne, id_type_demande = NULL
+-- - specifique demande: id_type_demande renseigne, id_type_visa = NULL
 INSERT INTO piece_a_fournir (
     id_piece_a_fournir,
     nom,
     obligatoire,
-    id_type_demande_effectuee,
+    id_type_demande,
     id_type_visa
 )
 VALUES

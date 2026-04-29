@@ -21,7 +21,9 @@ public class PieceAFournirController {
     }
 
     @GetMapping("/pieces-a-fournir")
-    public List<PieceAFournirParVisaDTO> getPiecesParTypeVisa(@RequestParam("typeVisa") Integer idTypeVisa) {
-        return pieceAFournirService.getPiecesParTypeVisa(idTypeVisa);
+    public List<PieceAFournirParVisaDTO> getPiecesParTypeVisa(
+            @RequestParam("typeVisa") Integer idTypeVisa,
+            @RequestParam(value = "typeDemande", required = false) Integer idTypeDemande) {
+        return pieceAFournirService.getPiecesParTypeVisa(idTypeVisa, idTypeDemande);
     }
 }

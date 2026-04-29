@@ -139,6 +139,36 @@ label.full {
     grid-column: 1 / -1;
 }
 
+.inline-check {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #fff8ed;
+    display: grid;
+    gap: 6px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.request-note {
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid #e6d6be;
+    background: #fffdf7;
+    padding: 10px 12px;
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
 input,
 select {
     border: 1px solid var(--line);

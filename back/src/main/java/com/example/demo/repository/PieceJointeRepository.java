@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.example.demo.model.PieceJointe;
 
 public interface PieceJointeRepository extends JpaRepository<PieceJointe, Integer> {
-	List<PieceJointe> findByIdDemandeEffectuee(Integer idDemandeEffectuee);
+	List<PieceJointe> findByIdDemande(Integer idDemande);
 }
