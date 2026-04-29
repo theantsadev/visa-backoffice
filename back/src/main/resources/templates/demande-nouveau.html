@@ -17,7 +17,7 @@
     <main class="page-shell">
         <section class="hero-card">
             <p class="eyebrow">Parcours principal</p>
-            <h1>Demande de visa - Nouveau titre</h1>
+            <h1 id="demandeTitle">créer une demande</h1>
             <p class="subtitle">
                 Suivez les 5 etapes. Les donnees sont enregistrees dans l'ordre metier et la soumission finale retourne
                 un dossier cree.
@@ -30,10 +30,10 @@
 
         <section class="stepper-card">
             <ol class="stepper" id="stepper">
-                <li class="step is-active" data-step="1" role="button" tabindex="0">1. Demandeur</li>
-                <li class="step" data-step="2" role="button" tabindex="0">2. Passeport</li>
-                <li class="step" data-step="3" role="button" tabindex="0">3. Visa transformable</li>
-                <li class="step" data-step="4" role="button" tabindex="0">4. Type de demande</li>
+                <li class="step is-active" data-step="1" role="button" tabindex="0">1. Type de demande</li>
+                <li class="step" data-step="2" role="button" tabindex="0">2. Demandeur</li>
+                <li class="step" data-step="3" role="button" tabindex="0">3. Passeport</li>
+                <li class="step" data-step="4" role="button" tabindex="0">4. Visa transformable</li>
                 <li class="step" data-step="5" role="button" tabindex="0">5. Pieces</li>
             </ol>
         </section>
@@ -42,7 +42,34 @@
             <form id="demandeForm" novalidate data-confirmation-url="/demande/confirmation"
                 th:attr="data-confirmation-url=@{/demande/confirmation}">
                 <div class="step-panel is-active" data-step-panel="1">
-                    <h2>Etape 1 - Demandeur</h2>
+                    <h2>Etape 1 - Type de demande</h2>
+                    <div class="grid two">
+                        <label>Type de demande *
+                            <select name="idTypeDemande" required>
+                                <option value="">Selectionner</option>
+                            </select>
+                        </label>
+                        <label>Type de visa *
+                            <select name="idTypeVisa" required>
+                                <option value="">Selectionner</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="inline-check" id="sansDonneesWrapper" hidden>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="sansDonnees">
+                            Sans donnees anterieures
+                        </label>
+                        <p class="hint">Dans ce mode, le visa transformable n'est pas requis.</p>
+                    </div>
+                    <div class="request-note" id="transfertNote" hidden>
+                        <strong>Transfert</strong>
+                        <span>Le passeport saisi a l'etape 3 sera utilise comme nouveau passeport.</span>
+                    </div>
+                </div>
+
+                <div class="step-panel" data-step-panel="2">
+                    <h2>Etape 2 - Demandeur</h2>
                     <div class="quick-fill-card">
                         <p class="hint">Saisie rapide: selectionnez des donnees existantes.</p>
                         <div class="grid two">
@@ -98,8 +125,8 @@
                     </div>
                 </div>
 
-                <div class="step-panel" data-step-panel="2">
-                    <h2>Etape 2 - Passeport</h2>
+                <div class="step-panel" data-step-panel="3">
+                    <h2>Etape 3 - Passeport</h2>
                     <div class="grid two">
                         <label>Numero de passeport *
                             <input name="numero" required>
@@ -111,10 +138,25 @@
                             <input type="date" name="dateExpiration">
                         </label>
                     </div>
+                    <div class="request-note" id="nouveauPassportNote" hidden>
+                        <strong>Nouveau passeport</strong>
+                        <span>Renseignez les informations du nouveau passeport pour le transfert.</span>
+                    </div>
+                    <div class="grid two" id="nouveauPassportFields" hidden>
+                        <label>Numero nouveau passeport *
+                            <input name="numeroNouveau">
+                        </label>
+                        <label>Date de delivrance (nouveau)
+                            <input type="date" name="dateDelivranceNouveau">
+                        </label>
+                        <label>Date d'expiration (nouveau)
+                            <input type="date" name="dateExpirationNouveau">
+                        </label>
+                    </div>
                 </div>
 
-                <div class="step-panel" data-step-panel="3">
-                    <h2>Etape 3 - Visa transformable</h2>
+                <div class="step-panel" data-step-panel="4">
+                    <h2>Etape 4 - Visa transformable</h2>
                     <p class="hint">Optionnel si la demande est sans donnees anterieures.</p>
                     <div class="grid two">
                         <label>Reference visa *
@@ -132,33 +174,6 @@
                         <label>Date sortie
                             <input type="date" name="dateSortie">
                         </label>
-                    </div>
-                </div>
-
-                <div class="step-panel" data-step-panel="4">
-                    <h2>Etape 4 - Choix de la demande</h2>
-                    <div class="grid two">
-                        <label>Type de visa *
-                            <select name="idTypeVisa" required>
-                                <option value="">Selectionner</option>
-                            </select>
-                        </label>
-                        <label>Type de demande *
-                            <select name="idTypeDemande" required>
-                                <option value="">Selectionner</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="inline-check" id="sansDonneesWrapper" hidden>
-                        <label class="checkbox-row">
-                            <input type="checkbox" id="sansDonnees">
-                            Sans donnees anterieures
-                        </label>
-                        <p class="hint">Dans ce mode, le visa transformable n'est pas requis.</p>
-                    </div>
-                    <div class="request-note" id="transfertNote" hidden>
-                        <strong>Transfert</strong>
-                        <span>Le passeport saisi a l'etape 2 sera utilise comme nouveau passeport.</span>
                     </div>
                 </div>
 

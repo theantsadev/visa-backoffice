@@ -17,7 +17,10 @@
     const sansDonnees = document.getElementById("sansDonnees");
     const sansDonneesWrapper = document.getElementById("sansDonneesWrapper");
     const transfertNote = document.getElementById("transfertNote");
+    const nouveauPassportNote = document.getElementById("nouveauPassportNote");
+    const nouveauPassportFields = document.getElementById("nouveauPassportFields");
     const confirmationUrl = form.dataset.confirmationUrl || "/demande/confirmation";
+    const demandeTitle = document.getElementById("demandeTitle");
     const AUTOSAVE_KEY = "demande-nouveau-autosave-v1";
     const AUTOSAVE_STEP_MAX = 5;
 
@@ -158,25 +161,33 @@
 
     function validateStep(step) {
         if (step === 1) {
+            return required("[name='idTypeDemande']", "Type de demande")
+                || required("[name='idTypeVisa']", "Type de visa");
+        }
+        if (step === 2) {
             return required("[name='nom']", "Nom")
                 || required("[name='dateNaissance']", "Date de naissance")
                 || required("[name='telephone']", "Telephone")
                 || required("[name='idNationalite']", "Nationalite")
                 || required("[name='idStatutFamilial']", "Situation familiale");
         }
-        if (step === 2) {
+        if (step === 3) {
+            if (isDemandeTransfert()) {
+                return required("[name='numero']", "Numero de passeport")
+                    || required("[name='numeroNouveau']", "Numero nouveau passeport");
+            }
             return required("[name='numero']", "Numero de passeport");
         }
-        if (step === 3) {
+        if (step === 4) {
+            if (isDemandeDuplicata() || isDemandeTransfert()) {
+                return required("[name='referenceVisa']", "Reference visa")
+                    || required("[name='dateEntreeMada']", "Date entree Madagascar");
+            }
             if (isSansDonneesChecked()) {
                 return null;
             }
             return required("[name='referenceVisa']", "Reference visa")
                 || required("[name='dateEntreeMada']", "Date entree Madagascar");
-        }
-        if (step === 4) {
-            return required("[name='idTypeVisa']", "Type de visa")
-                || required("[name='idTypeDemande']", "Type de demande");
         }
         if (step === 5) {
             const missing = state.piecesSelection.filter((p) => p.obligatoire && !p.selected);
@@ -213,6 +224,21 @@
         return getIdTypeDemande() === 3;
     }
 
+    function updateDemandeTitle() {
+        if (!demandeTitle) {
+            return;
+        }
+
+        const select = form.querySelector("[name='idTypeDemande']");
+        if (!select) {
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const label = option && option.value ? option.textContent.trim() : "Nouveau titre";
+        demandeTitle.textContent = "Demande de - " + label;
+    }
+
     function updateDemandeTypeUi() {
         const showSansDonnees = isDemandeDuplicata() || isDemandeTransfert();
         if (sansDonneesWrapper) {
@@ -227,12 +253,26 @@
             transfertNote.hidden = !isDemandeTransfert();
         }
 
-        if (quickVisa) {
-            quickVisa.disabled = isSansDonneesChecked();
-            if (isSansDonneesChecked()) {
-                quickVisa.value = "";
-            }
+        if (nouveauPassportNote) {
+            nouveauPassportNote.hidden = !isDemandeTransfert();
         }
+
+        if (nouveauPassportFields) {
+            nouveauPassportFields.hidden = !isDemandeTransfert();
+        }
+
+        if (quickVisa && isSansDonneesChecked() && isDemandeTransfert() == false && isDemandeDuplicata() == false) {
+            quickVisa.value = "";
+        }
+    }
+
+    function getSelectedVisaId() {
+        if (!quickVisa || !quickVisa.value) {
+            return null;
+        }
+
+        const value = Number(quickVisa.value);
+        return Number.isNaN(value) ? null : value;
     }
 
     function getCategorieLabel(categorie) {
@@ -466,8 +506,11 @@
     async function buildPieces() {
         const idTypeVisa = toNumber("idTypeVisa");
         const idTypeDemande = toNumber("idTypeDemande");
-        if (!idTypeVisa || !idTypeDemande) {
-            throw new Error("Type de visa et type de demande requis pour charger les pieces.");
+        if (!idTypeDemande) {
+            throw new Error("Type de demande requis pour charger les pieces.");
+        }
+        if (!idTypeVisa) {
+            throw new Error("Type de visa requis pour charger les pieces.");
         }
 
         const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + idTypeVisa
@@ -601,6 +644,9 @@
         const idTypeVisa = toNumber("idTypeVisa");
         const idTypeDemande = toNumber("idTypeDemande");
         const sansDonneesMode = isSansDonneesChecked();
+        if (!idTypeVisa) {
+            throw new Error("Veuillez selectionner un type de visa.");
+        }
         const piecesCible = state.piecesSelection
             .filter((p) => p.selected)
             .map((p) => ({ idPieceAFournir: p.idPieceAFournir }));
@@ -608,10 +654,41 @@
         let soumission;
 
         if (sansDonneesMode) {
+            let idVisaTransformable = getSelectedVisaId();
+            let idPassportNouveau = null;
+            if (idTypeDemande === 3) {
+                const nouveauPassport = {
+                    numero: getValue("numeroNouveau"),
+                    dateDelivrance: getValue("dateDelivranceNouveau") || null,
+                    dateExpiration: getValue("dateExpirationNouveau") || null
+                };
+                if (!nouveauPassport.numero) {
+                    throw new Error("Veuillez renseigner le numero du nouveau passeport.");
+                }
+                const nouveauPassportResponse = await postJson(
+                    "/api/demandeurs/" + state.idDemandeur + "/passports",
+                    nouveauPassport
+                );
+                idPassportNouveau = nouveauPassportResponse.idPassport;
+            }
+            if (!idVisaTransformable) {
+                const visa = {
+                    referenceVisa: getValue("referenceVisa"),
+                    natureVisa: getValue("natureVisa") || null,
+                    dateEntreeMada: getValue("dateEntreeMada"),
+                    lieuEntreeMada: getValue("lieuEntreeMada") || null,
+                    dateSortie: getValue("dateSortie") || null
+                };
+                if (!visa.referenceVisa || !visa.dateEntreeMada) {
+                    throw new Error("Veuillez renseigner le visa transformable.");
+                }
+                const visaResponse = await postJson("/api/passports/" + state.idPassport + "/visas-transformables", visa);
+                idVisaTransformable = visaResponse.id;
+            }
             const demandeNouveauTitre = {
                 idDemandeur: state.idDemandeur,
                 idPassport: state.idPassport,
-                idVisaTransformable: null,
+                idVisaTransformable: idVisaTransformable,
                 idTypeVisa: idTypeVisa,
                 idTypeDemande: 1,
                 piecesJointes: []
@@ -625,7 +702,7 @@
             } else if (idTypeDemande === 3) {
                 soumission = await postJson("/api/demandes/transfert/sans-donnees", {
                     demandeNouveauTitre: demandeNouveauTitre,
-                    idPassportNouveau: state.idPassport,
+                    idPassportNouveau: idPassportNouveau,
                     piecesCible: piecesCible
                 });
             } else {
@@ -814,6 +891,7 @@
             await restoreQuickSelections();
 
             updateDemandeTypeUi();
+            updateDemandeTitle();
 
             if (currentStep === 5 && state.piecesSelection.length) {
                 await buildPieces();
@@ -827,6 +905,7 @@
     if (typeDemandeSelect) {
         typeDemandeSelect.addEventListener("change", () => {
             updateDemandeTypeUi();
+            updateDemandeTitle();
             saveAutosave();
         });
     }

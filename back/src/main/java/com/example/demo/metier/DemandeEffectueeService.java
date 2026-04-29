@@ -284,6 +284,9 @@ public class DemandeEffectueeService {
         if (dto.getIdPassport() == null) {
             throw new IllegalArgumentException("L'id du passeport est obligatoire.");
         }
+        if (dto.getIdVisaTransformable() == null) {
+            throw new IllegalArgumentException("L'id du visa transformable est obligatoire.");
+        }
         if (dto.getIdTypeVisa() == null) {
             throw new IllegalArgumentException("Le type de visa est obligatoire.");
         }
@@ -300,11 +303,25 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("Le passeport selectionne n'appartient pas au demandeur.");
         }
 
+        VisaTransformable visaTransformable = visaTransformableRepository.findById(dto.getIdVisaTransformable())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Visa transformable introuvable pour id=" + dto.getIdVisaTransformable()));
+
+        if (visaTransformable.getDemandeur() == null
+                || !dto.getIdDemandeur().equals(visaTransformable.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au demandeur.");
+        }
+
+        if (visaTransformable.getPassport() == null
+                || !dto.getIdPassport().equals(visaTransformable.getPassport().getIdPassport())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au passeport.");
+        }
+
         TypeVisa typeVisa = typeVisaRepository.findById(dto.getIdTypeVisa())
                 .orElseThrow(
                         () -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
 
-        return creerDemandeEtNouveauTitre(demandeur, typeVisa, null, passport, ID_TYPE_DEMANDE_NOUVEAU_TITRE,
+        return creerDemandeEtNouveauTitre(demandeur, typeVisa, visaTransformable, passport, ID_TYPE_DEMANDE_NOUVEAU_TITRE,
                 ID_STATUT_VISA_ACCORDE);
     }
 

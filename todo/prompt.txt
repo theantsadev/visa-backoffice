@@ -1,0 +1,3 @@
+Il y a eu cette erreur maintenant "Echec de soumission: [BUSINESS_ERROR] Le type de visa est obligatoire." je pense que c"est du au fait qu'on a placé le choix du type de visa et de demande au tout debut.
+
+-> Pourriez vous me corriger et m'arranger cette erreur et surtout me faire que le diplicata et et trasnfert de visa n'a plus besoin de type de visa ?

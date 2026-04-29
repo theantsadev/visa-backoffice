@@ -13,6 +13,7 @@ import com.example.demo.metier.dto.DemandeDetailDTO;
 import com.example.demo.metier.dto.DemandeListeItemDTO;
 import com.example.demo.model.Demande;
 import com.example.demo.model.DemandeNouveauTitre;
+import com.example.demo.model.DemandeTransfertVisa;
 import com.example.demo.model.Demandeur;
 import com.example.demo.model.HistoriqueStatutDemande;
 import com.example.demo.model.Passport;
@@ -21,6 +22,7 @@ import com.example.demo.model.PieceJointe;
 import com.example.demo.model.VisaTransformable;
 import com.example.demo.repository.DemandeNouveauTitreRepository;
 import com.example.demo.repository.DemandeRepository;
+import com.example.demo.repository.DemandeTransfertVisaRepository;
 import com.example.demo.repository.HistoriqueStatutDemandeRepository;
 import com.example.demo.repository.PieceAFournirRepository;
 import com.example.demo.repository.PieceJointeRepository;
@@ -31,6 +33,7 @@ public class DemandeListeService {
 
     private final DemandeRepository demandeRepository;
     private final DemandeNouveauTitreRepository demandeNouveauTitreRepository;
+    private final DemandeTransfertVisaRepository demandeTransfertVisaRepository;
     private final HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
     private final StatutDemandeRepository statutDemandeRepository;
     private final PieceJointeRepository pieceJointeRepository;
@@ -39,12 +42,14 @@ public class DemandeListeService {
     public DemandeListeService(
             DemandeRepository demandeRepository,
             DemandeNouveauTitreRepository demandeNouveauTitreRepository,
+            DemandeTransfertVisaRepository demandeTransfertVisaRepository,
             HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository,
             StatutDemandeRepository statutDemandeRepository,
             PieceJointeRepository pieceJointeRepository,
             PieceAFournirRepository pieceAFournirRepository) {
         this.demandeRepository = demandeRepository;
         this.demandeNouveauTitreRepository = demandeNouveauTitreRepository;
+        this.demandeTransfertVisaRepository = demandeTransfertVisaRepository;
         this.historiqueStatutDemandeRepository = historiqueStatutDemandeRepository;
         this.statutDemandeRepository = statutDemandeRepository;
         this.pieceJointeRepository = pieceJointeRepository;
@@ -184,8 +189,23 @@ public class DemandeListeService {
     }
 
     private Passport getPassport(Demande demande) {
+        if (demande != null && demande.getTypeDemande() != null && demande.getTypeDemande().getId() != null) {
+            if (Integer.valueOf(3).equals(demande.getTypeDemande().getId())) {
+                return getPassportTransfert(demande.getId());
+            }
+        }
+
         DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
         return demandeNouveauTitre != null ? demandeNouveauTitre.getPassport() : null;
+    }
+
+    private Passport getPassportTransfert(Integer idDemande) {
+        if (idDemande == null) {
+            return null;
+        }
+
+        DemandeTransfertVisa transfert = demandeTransfertVisaRepository.findById(idDemande).orElse(null);
+        return transfert != null ? transfert.getPassport() : null;
     }
 
     private VisaTransformable getVisaTransformable(Demande demande) {
