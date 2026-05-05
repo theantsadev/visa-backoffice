@@ -24,6 +24,14 @@ Remplacer la logique de cases a cocher par un vrai upload de fichier par piece j
 ### Consultation
 - Exposer le lien du fichier dans le detail d’une demande pour pouvoir ouvrir la piece jointe.
 
+### Modification des dossiers
+- Ajouter des endpoints `PUT` multipart pour modifier un dossier nouveau titre, un duplicata sans donnees et un transfert sans donnees.
+- Reutiliser la demande source existante au lieu d’en creer une nouvelle lors d’une modification.
+- Remplacer les pieces jointes du dossier modifie en supprimant les anciens fichiers disque et les anciennes lignes en base.
+- Bloquer toute modification si le dossier n’est plus au statut modifiable.
+- Permettre a l’admin de basculer un dossier vers `visa_accorde` ou `visa_rejete`.
+- Calculer le statut metier entre `dossier_cree` et `scan_termine` selon la presence de toutes les pieces attendues et la complettude des champs optionnels.
+
 ## Points d’attention
 - Les fichiers ne peuvent pas etre restaures via l’autosave du navigateur, donc un rechargement d’ecran impose de re-selectionner les fichiers.
 - Les scripts SQL de remise a zero peuvent rester inchanges si `lien` reste nullable.
