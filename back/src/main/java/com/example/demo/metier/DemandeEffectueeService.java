@@ -122,6 +122,8 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("Le type de demande est obligatoire.");
         }
 
+        
+
         Demandeur demandeur = demandeurRepository.findById(dto.getIdDemandeur())
                 .orElseThrow(
                         () -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
@@ -159,19 +161,54 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("Le type de demande doit etre 'Nouveau titre'.");
         }
 
-        StatutDemande statut = determinerStatut(dto.getPiecesJointes(), dto.getIdTypeVisa(), dto.getIdTypeDemande());
-
         Demande demandeCreee = creerDemandeEtNouveauTitre(
                 demandeur,
                 typeVisa,
                 visaTransformable,
                 passport,
                 ID_TYPE_DEMANDE_NOUVEAU_TITRE,
-                statut.getId());
+                ID_STATUT_DOSSIER_CREE);
+
+        StatutDemande statut = determinerStatut(demandeCreee, dto.getPiecesJointes());
+        enregistrerStatutSiNecessaire(demandeCreee.getId(), statut.getId());
 
         savePiecesJointes(dto.getPiecesJointes(), files, demandeCreee.getId());
 
         return new DemandeSoumiseDTO(demandeCreee.getId(), statut.getLibelle(), demandeCreee.getDateDemande());
+    }
+
+    @Transactional
+    public DemandeSoumiseDTO mettreAJourDemandeNouveauTitre(Integer idDemande, DemandeDTO dto,
+            List<MultipartFile> files) {
+        Demande demande = chargerDemandeEditable(idDemande, ID_TYPE_DEMANDE_NOUVEAU_TITRE);
+        if (dto == null) {
+            throw new IllegalArgumentException("La demande est obligatoire.");
+        }
+
+        Demandeur demandeur = chargerDemandeur(dto.getIdDemandeur());
+        Passport passport = chargerPassport(dto.getIdPassport(), dto.getIdDemandeur());
+        VisaTransformable visaTransformable = chargerVisaTransformable(dto.getIdVisaTransformable(),
+                dto.getIdDemandeur(),
+                dto.getIdPassport());
+        TypeVisa typeVisa = chargerTypeVisa(dto.getIdTypeVisa());
+
+        demande.setDemandeur(demandeur);
+        demandeRepository.save(demande);
+
+        DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
+        if (demandeNouveauTitre == null) {
+            demandeNouveauTitre = new DemandeNouveauTitre();
+            demandeNouveauTitre.setDemande(demande);
+        }
+        demandeNouveauTitre.setPassport(passport);
+        demandeNouveauTitre.setVisaTransformable(visaTransformable);
+        demandeNouveauTitre.setTypeVisa(typeVisa);
+        demandeNouveauTitreRepository.save(demandeNouveauTitre);
+
+        remplacerPiecesJointes(demande.getId(), dto.getPiecesJointes(), files);
+        StatutDemande statut = determinerStatut(demande, dto.getPiecesJointes());
+        enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
+        return new DemandeSoumiseDTO(demande.getId(), statut.getLibelle(), demande.getDateDemande());
     }
 
     @Transactional
@@ -184,17 +221,54 @@ public class DemandeEffectueeService {
 
         Demande demandeSource = creerDemandeEtNouveauTitreSansDonnees(dtoNouveauTitre);
 
-        StatutDemande statut = determinerStatut(piecesCible, dtoNouveauTitre.getIdTypeVisa(), ID_TYPE_DEMANDE_DUPLICATA);
-
         Demande demandeCible = creerDemandeCible(dtoNouveauTitre.getIdDemandeur(), ID_TYPE_DEMANDE_DUPLICATA,
-                statut.getId());
+                ID_STATUT_DOSSIER_CREE);
 
         DemandeDuplicataCarteResident duplicata = new DemandeDuplicataCarteResident();
         duplicata.setDemande(demandeCible);
         duplicata.setDemandeNouveauTitreSource(getDemandeNouveauTitre(demandeSource));
         demandeDuplicataCarteResidentRepository.save(duplicata);
+        demandeCible.setDemandeDuplicataCarteResident(duplicata);
 
         savePiecesJointes(piecesCible, files, demandeCible.getId());
+
+        StatutDemande statut = determinerStatut(demandeCible, piecesCible);
+        enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
+
+        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+    }
+
+    public Demande getDemandeById(Integer id) {
+        return demandeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable pour id=" + id));
+    }
+
+    @Transactional
+    public DemandeSoumiseDTO mettreAJourDuplicataSansDonnees(Integer idDemande,
+            DemandeDTO dtoNouveauTitre,
+            List<DemandeDTO.PieceJointeDTO> piecesCible,
+            List<MultipartFile> files) {
+        Demande demandeCible = chargerDemandeEditable(idDemande, ID_TYPE_DEMANDE_DUPLICATA);
+        if (dtoNouveauTitre == null) {
+            throw new IllegalArgumentException("La demande nouveau titre est obligatoire.");
+        }
+
+        DemandeDuplicataCarteResident duplicata = demandeCible.getDemandeDuplicataCarteResident();
+        if (duplicata == null) {
+            duplicata = demandeDuplicataCarteResidentRepository.findById(idDemande)
+                    .orElseThrow(() -> new IllegalArgumentException("Duplicata introuvable pour id=" + idDemande));
+        }
+
+        DemandeNouveauTitre source = chargerSourceNouveauTitre(demandeCible);
+        mettreAJourDemandeNouveauTitreSource(source, dtoNouveauTitre);
+
+        demandeDuplicataCarteResidentRepository.save(duplicata);
+        demandeRepository.save(demandeCible);
+        demandeCible.setDemandeDuplicataCarteResident(duplicata);
+
+        remplacerPiecesJointes(demandeCible.getId(), piecesCible, files);
+        StatutDemande statut = determinerStatut(demandeCible, piecesCible);
+        enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
         return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
     }
@@ -213,10 +287,8 @@ public class DemandeEffectueeService {
 
         Demande demandeSource = creerDemandeEtNouveauTitreSansDonnees(dtoNouveauTitre);
 
-        StatutDemande statut = determinerStatut(piecesCible, dtoNouveauTitre.getIdTypeVisa(), ID_TYPE_DEMANDE_TRANSFERT);
-
         Demande demandeCible = creerDemandeCible(dtoNouveauTitre.getIdDemandeur(), ID_TYPE_DEMANDE_TRANSFERT,
-                statut.getId());
+                ID_STATUT_DOSSIER_CREE);
 
         Passport passportNouveau = passportRepository.findById(idPassportNouveau)
                 .orElseThrow(() -> new IllegalArgumentException("Passeport introuvable pour id=" + idPassportNouveau));
@@ -231,13 +303,53 @@ public class DemandeEffectueeService {
         transfert.setPassport(passportNouveau);
         transfert.setDemandeNouveauTitreSource(getDemandeNouveauTitre(demandeSource));
         demandeTransfertVisaRepository.save(transfert);
+        demandeCible.setDemandeTransfertVisa(transfert);
 
         savePiecesJointes(piecesCible, files, demandeCible.getId());
+
+        StatutDemande statut = determinerStatut(demandeCible, piecesCible);
+        enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
         return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
     }
 
-        public void validerPiecesObligatoires(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa,
+    @Transactional
+    public DemandeSoumiseDTO mettreAJourTransfertSansDonnees(Integer idDemande,
+            DemandeDTO dtoNouveauTitre,
+            Integer idPassportNouveau,
+            List<DemandeDTO.PieceJointeDTO> piecesCible,
+            List<MultipartFile> files) {
+        Demande demandeCible = chargerDemandeEditable(idDemande, ID_TYPE_DEMANDE_TRANSFERT);
+        if (dtoNouveauTitre == null) {
+            throw new IllegalArgumentException("La demande nouveau titre est obligatoire.");
+        }
+        if (idPassportNouveau == null) {
+            throw new IllegalArgumentException("Le nouveau passeport est obligatoire.");
+        }
+
+        DemandeTransfertVisa transfert = demandeCible.getDemandeTransfertVisa();
+        if (transfert == null) {
+            transfert = demandeTransfertVisaRepository.findById(idDemande)
+                    .orElseThrow(() -> new IllegalArgumentException("Transfert introuvable pour id=" + idDemande));
+        }
+
+        DemandeNouveauTitre source = chargerSourceNouveauTitre(demandeCible);
+        mettreAJourDemandeNouveauTitreSource(source, dtoNouveauTitre);
+
+        Passport passportNouveau = chargerPassport(idPassportNouveau, dtoNouveauTitre.getIdDemandeur());
+        transfert.setPassport(passportNouveau);
+        demandeTransfertVisaRepository.save(transfert);
+        demandeRepository.save(demandeCible);
+        demandeCible.setDemandeTransfertVisa(transfert);
+
+        remplacerPiecesJointes(demandeCible.getId(), piecesCible, files);
+        StatutDemande statut = determinerStatut(demandeCible, piecesCible);
+        enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
+
+        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+    }
+
+    public void validerPiecesObligatoires(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa,
             Integer idTypeDemande) {
         if (idTypeVisa == null) {
             throw new IllegalArgumentException("L'id type visa est obligatoire pour valider les pieces.");
@@ -254,7 +366,7 @@ public class DemandeEffectueeService {
                 .collect(Collectors.toSet());
 
         List<PieceAFournir> piecesObligatoires = pieceAFournirRepository.findPiecesObligatoires(
-            idTypeVisa, idTypeDemande);
+                idTypeVisa, idTypeDemande);
 
         for (PieceAFournir pieceObligatoire : piecesObligatoires) {
             if (!piecesFournies.contains(pieceObligatoire.getId())) {
@@ -264,9 +376,21 @@ public class DemandeEffectueeService {
         }
     }
 
-    private StatutDemande determinerStatut(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa,
-            Integer idTypeDemande) {
-        validerPiecesObligatoires(pieces, idTypeVisa, idTypeDemande);
+    private StatutDemande determinerStatut(Demande demande, List<DemandeDTO.PieceJointeDTO> pieces) {
+        if (demande == null) {
+            throw new IllegalArgumentException("La demande est obligatoire.");
+        }
+
+        DemandeNouveauTitre demandeNouveauTitre = chargerSourceNouveauTitre(demande);
+
+        if (demandeNouveauTitre == null || demandeNouveauTitre.getTypeVisa() == null
+                || demande.getTypeDemande() == null || demande.getTypeDemande().getId() == null) {
+            throw new IllegalArgumentException("Les informations de la demande sont incomplètes.");
+        }
+
+        Integer idTypeVisa = demandeNouveauTitre.getTypeVisa().getId();
+        Integer idTypeDemande = demande.getTypeDemande().getId();
+        // validerPiecesObligatoires(pieces, idTypeVisa, idTypeDemande);
 
         Set<Integer> piecesFournies = (pieces == null ? Collections.<DemandeDTO.PieceJointeDTO>emptyList() : pieces)
                 .stream()
@@ -283,12 +407,34 @@ public class DemandeEffectueeService {
         piecesParVisa.forEach(piece -> toutesLesPieces.add(piece.getId()));
         piecesParDemande.forEach(piece -> toutesLesPieces.add(piece.getId()));
 
-        Integer idStatut = piecesFournies.containsAll(toutesLesPieces)
+        boolean toutesLesPiecesCompletes = piecesFournies.containsAll(toutesLesPieces);
+        boolean tousLesChampsOptionnelsComplets = sontChampsOptionnelsComplets(demandeNouveauTitre);
+
+        Integer idStatut = (toutesLesPiecesCompletes && tousLesChampsOptionnelsComplets)
                 ? ID_STATUT_SCAN_TERMINE
                 : ID_STATUT_DOSSIER_CREE;
 
         return statutDemandeRepository.findById(idStatut)
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + idStatut));
+    }
+
+    @Transactional
+    public DemandeSoumiseDTO validerParAdmin(Integer idDemande, String statutLibelle) {
+        if (idDemande == null) {
+            throw new IllegalArgumentException("L'id de la demande est obligatoire.");
+        }
+        if (isBlank(statutLibelle)) {
+            throw new IllegalArgumentException("Le statut est obligatoire.");
+        }
+
+        Demande demande = demandeRepository.findById(idDemande)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable pour id=" + idDemande));
+
+        StatutDemande statut = statutDemandeRepository.findByLibelleIgnoreCase(statutLibelle)
+                .orElseThrow(() -> new IllegalArgumentException("Statut introuvable: " + statutLibelle));
+
+        enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
+        return new DemandeSoumiseDTO(demande.getId(), statut.getLibelle(), demande.getDateDemande());
     }
 
     private Demande creerDemandeEtNouveauTitreSansDonnees(DemandeDTO dto) {
@@ -335,7 +481,8 @@ public class DemandeEffectueeService {
                 .orElseThrow(
                         () -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
 
-        return creerDemandeEtNouveauTitre(demandeur, typeVisa, visaTransformable, passport, ID_TYPE_DEMANDE_NOUVEAU_TITRE,
+        return creerDemandeEtNouveauTitre(demandeur, typeVisa, visaTransformable, passport,
+                ID_TYPE_DEMANDE_NOUVEAU_TITRE,
                 ID_STATUT_VISA_ACCORDE);
     }
 
@@ -388,6 +535,217 @@ public class DemandeEffectueeService {
         Demande demandeCreee = demandeRepository.save(demande);
         enregistrerStatut(demandeCreee.getId(), idStatut);
         return demandeCreee;
+    }
+
+    private Demande chargerDemandeEditable(Integer idDemande, Integer idTypeDemandeAttendu) {
+        if (idDemande == null) {
+            throw new IllegalArgumentException("L'id de la demande est obligatoire.");
+        }
+
+        Demande demande = demandeRepository.findById(idDemande)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable pour id=" + idDemande));
+
+        if (demande.getTypeDemande() == null || demande.getTypeDemande().getId() == null
+                || !idTypeDemandeAttendu.equals(demande.getTypeDemande().getId())) {
+            throw new IllegalArgumentException("Le type de demande ne correspond pas.");
+        }
+
+        StatutDemande statutActuel = getStatutActuel(demande.getId());
+        if (statutActuel != null && !ID_STATUT_DOSSIER_CREE.equals(statutActuel.getId())) {
+            throw new IllegalArgumentException("La demande n'est plus modifiable.");
+        }
+
+        return demande;
+    }
+
+    private StatutDemande getStatutActuel(Integer idDemande) {
+        if (idDemande == null) {
+            return null;
+        }
+
+        return historiqueStatutDemandeRepository.findTopByIdDemandeOrderByDateHeureHistoriqueDesc(idDemande)
+                .map(historique -> historique.getStatutDemande())
+                .flatMap(statutDemandeRepository::findById)
+                .orElse(null);
+    }
+
+    private void enregistrerStatutSiNecessaire(Integer idDemande, Integer idStatut) {
+        if (idDemande == null || idStatut == null) {
+            return;
+        }
+
+        StatutDemande statutActuel = getStatutActuel(idDemande);
+        if (statutActuel != null && idStatut.equals(statutActuel.getId())) {
+            return;
+        }
+
+        enregistrerStatut(idDemande, idStatut);
+    }
+
+    private Demandeur chargerDemandeur(Integer idDemandeur) {
+        if (idDemandeur == null) {
+            throw new IllegalArgumentException("L'id du demandeur est obligatoire.");
+        }
+
+        return demandeurRepository.findById(idDemandeur)
+                .orElseThrow(() -> new IllegalArgumentException("Demandeur introuvable pour id=" + idDemandeur));
+    }
+
+    private Passport chargerPassport(Integer idPassport, Integer idDemandeur) {
+        if (idPassport == null) {
+            throw new IllegalArgumentException("L'id du passeport est obligatoire.");
+        }
+
+        Passport passport = passportRepository.findById(idPassport)
+                .orElseThrow(() -> new IllegalArgumentException("Passeport introuvable pour id=" + idPassport));
+
+        if (passport.getDemandeur() == null || idDemandeur == null
+                || !idDemandeur.equals(passport.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le passeport selectionne n'appartient pas au demandeur.");
+        }
+
+        return passport;
+    }
+
+    private VisaTransformable chargerVisaTransformable(Integer idVisaTransformable, Integer idDemandeur,
+            Integer idPassport) {
+        if (idVisaTransformable == null) {
+            return null;
+        }
+
+        VisaTransformable visaTransformable = visaTransformableRepository.findById(idVisaTransformable)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Visa transformable introuvable pour id=" + idVisaTransformable));
+
+        if (visaTransformable.getDemandeur() == null || idDemandeur == null
+                || !idDemandeur.equals(visaTransformable.getDemandeur().getIdDemandeur())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au demandeur.");
+        }
+
+        if (visaTransformable.getPassport() == null || idPassport == null
+                || !idPassport.equals(visaTransformable.getPassport().getIdPassport())) {
+            throw new IllegalArgumentException("Le visa transformable selectionne n'appartient pas au passeport.");
+        }
+
+        return visaTransformable;
+    }
+
+    private TypeVisa chargerTypeVisa(Integer idTypeVisa) {
+        if (idTypeVisa == null) {
+            throw new IllegalArgumentException("Le type de visa est obligatoire.");
+        }
+
+        return typeVisaRepository.findById(idTypeVisa)
+                .orElseThrow(() -> new IllegalArgumentException("Type de visa introuvable pour id=" + idTypeVisa));
+    }
+
+    private void remplacerPiecesJointes(Integer idDemande, List<DemandeDTO.PieceJointeDTO> pieces,
+            List<MultipartFile> files) {
+        List<PieceJointe> piecesExistantes = pieceJointeRepository.findByIdDemande(idDemande);
+        java.util.Set<Integer> idsRemplaces = (pieces == null ? Collections.<DemandeDTO.PieceJointeDTO>emptyList()
+                : pieces)
+                .stream()
+                .map(DemandeDTO.PieceJointeDTO::getIdPieceAFournir)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        for (PieceJointe pieceExistante : piecesExistantes) {
+            if (idsRemplaces.contains(pieceExistante.getIdPieceAFournir())) {
+                supprimerFichierPieceJointe(pieceExistante.getLien());
+                pieceJointeRepository.delete(pieceExistante);
+            }
+        }
+
+        savePiecesJointes(pieces, files, idDemande);
+    }
+
+    private DemandeNouveauTitre chargerSourceNouveauTitre(Demande demande) {
+        if (demande == null) {
+            return null;
+        }
+
+        if (demande.getDemandeNouveauTitre() != null) {
+            return demande.getDemandeNouveauTitre();
+        }
+
+        if (demande.getDemandeDuplicataCarteResident() != null) {
+            return demande.getDemandeDuplicataCarteResident().getDemandeNouveauTitreSource();
+        }
+
+        if (demande.getDemandeTransfertVisa() != null) {
+            return demande.getDemandeTransfertVisa().getDemandeNouveauTitreSource();
+        }
+
+        return demandeNouveauTitreRepository.findById(demande.getId()).orElse(null);
+    }
+
+    private void mettreAJourDemandeNouveauTitreSource(DemandeNouveauTitre demandeNouveauTitre, DemandeDTO dto) {
+        if (demandeNouveauTitre == null || dto == null) {
+            throw new IllegalArgumentException("La demande nouveau titre est obligatoire.");
+        }
+
+        Demande demandeSource = demandeNouveauTitre.getDemande();
+        if (demandeSource == null) {
+            throw new IllegalArgumentException("La demande source est introuvable.");
+        }
+
+        Demandeur demandeur = chargerDemandeur(dto.getIdDemandeur());
+        Passport passport = chargerPassport(dto.getIdPassport(), dto.getIdDemandeur());
+        VisaTransformable visaTransformable = chargerVisaTransformable(dto.getIdVisaTransformable(),
+                dto.getIdDemandeur(),
+                dto.getIdPassport());
+        TypeVisa typeVisa = chargerTypeVisa(dto.getIdTypeVisa());
+
+        demandeSource.setDemandeur(demandeur);
+        demandeSource.setTypeDemande(typeDemandeRepository.findById(ID_TYPE_DEMANDE_NOUVEAU_TITRE)
+                .orElseThrow(() -> new IllegalArgumentException("Type de demande introuvable pour nouveau titre.")));
+        demandeRepository.save(demandeSource);
+
+        demandeNouveauTitre.setPassport(passport);
+        demandeNouveauTitre.setVisaTransformable(visaTransformable);
+        demandeNouveauTitre.setTypeVisa(typeVisa);
+        demandeNouveauTitreRepository.save(demandeNouveauTitre);
+    }
+
+    private boolean sontChampsOptionnelsComplets(DemandeNouveauTitre demandeNouveauTitre) {
+        if (demandeNouveauTitre == null) {
+            return false;
+        }
+
+        Demande demandeSource = demandeNouveauTitre.getDemande();
+        Demandeur demandeur = demandeSource != null ? demandeSource.getDemandeur() : null;
+        Passport passport = demandeNouveauTitre.getPassport();
+        VisaTransformable visaTransformable = demandeNouveauTitre.getVisaTransformable();
+
+        return demandeur != null
+                && !isBlank(demandeur.getPrenom())
+                && !isBlank(demandeur.getNomJeuneFille())
+                && !isBlank(demandeur.getAdresseMada())
+                && !isBlank(demandeur.getEmail())
+                && passport != null
+                && passport.getDateDelivrance() != null
+                && passport.getDateExpiration() != null
+                && visaTransformable != null
+                && !isBlank(visaTransformable.getLieuEntreeMada())
+                && visaTransformable.getDateSortie() != null;
+    }
+
+    private void supprimerFichierPieceJointe(String lien) {
+        if (isBlank(lien) || !lien.startsWith("/uploads/")) {
+            return;
+        }
+
+        Path relative = Paths.get(lien.substring("/uploads/".length()));
+        Path fichier = uploadRoot.resolve(relative);
+        try {
+            Files.deleteIfExists(fichier);
+        } catch (IOException e) {
+            // ignore cleanup failures
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private void enregistrerStatut(Integer idDemande, Integer idStatut) {
@@ -454,7 +812,8 @@ public class DemandeEffectueeService {
             Path dossierDemande = uploadRoot.resolve(String.valueOf(idDemande));
             Files.createDirectories(dossierDemande);
 
-            String nomOriginal = StringUtils.cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
+            String nomOriginal = StringUtils
+                    .cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
             String nomBase = Paths.get(nomOriginal).getFileName().toString();
             if (nomBase.isBlank()) {
                 nomBase = "piece";
