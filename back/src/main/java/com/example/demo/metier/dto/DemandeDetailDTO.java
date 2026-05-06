@@ -6,6 +6,8 @@ import java.util.List;
 
 public record DemandeDetailDTO(
         Integer id,
+        Integer idTypeVisa,
+        Integer idTypeDemande,
         LocalDateTime dateDemande,
         String statut,
         String typeVisa,
@@ -17,6 +19,8 @@ public record DemandeDetailDTO(
 
     public record DemandeurDetailDTO(
             Integer idDemandeur,
+            Integer idNationalite,
+            Integer idStatutFamilial,
             String nom,
             String prenom,
             LocalDate dateNaissance,

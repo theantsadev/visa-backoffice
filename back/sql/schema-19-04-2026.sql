@@ -169,8 +169,6 @@ CREATE TABLE
       FOREIGN KEY (id_demande) REFERENCES demande (id_demande)
    );
 
-
-
 CREATE TABLE
    historique_statut_demande (
       id_demande INTEGER,
@@ -267,8 +265,20 @@ VALUES
       NULL,
       NULL
    ),
-   (7, 'Certificat de residence a Madagascar', TRUE, NULL, NULL),
-   (8, 'Extrait de casier judiciaire de moins de 3 mois', TRUE, NULL, NULL),
+   (
+      7,
+      'Certificat de residence a Madagascar',
+      TRUE,
+      NULL,
+      NULL
+   ),
+   (
+      8,
+      'Extrait de casier judiciaire de moins de 3 mois',
+      TRUE,
+      NULL,
+      NULL
+   ),
    (9, 'Statut de la societe', TRUE, NULL, 2),
    (
       10,
@@ -313,4 +323,3 @@ VALUES
       NULL,
       1
    );
-

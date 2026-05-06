@@ -41,6 +41,40 @@
         return value == null || String(value).trim() === "" ? "-" : String(value);
     }
 
+    function normalizeStatus(value) {
+        return String(value || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+    }
+
+    async function buildApiError(response) {
+        let text = "";
+        try {
+            text = await response.text();
+        } catch (error) {
+            text = "";
+        }
+
+        if (!text) {
+            return new Error("Erreur API " + response.status);
+        }
+
+        try {
+            const data = JSON.parse(text);
+            if (data && typeof data === "object") {
+                const code = data.code ? ("[" + data.code + "] ") : "";
+                const message = data.message || data.error || ("Erreur API " + response.status);
+                return new Error(code + message);
+            }
+        } catch (error) {
+            // response body is not JSON
+        }
+
+        return new Error(text);
+    }
+
     function renderList() {
         listContainer.innerHTML = "";
 
@@ -198,6 +232,43 @@
             { label: "Date sortie", value: detail.visaTransformable && detail.visaTransformable.dateSortie }
         ]));
 
+        const statut = normalizeStatus(detail.statut);
+        const isEditable = statut === "dossiercree";
+        const isFinal = statut === "visaaccorde" || statut === "visarejete";
+
+        if (isEditable || !isFinal) {
+            const actions = document.createElement("div");
+            actions.className = "cta-row";
+
+            if (isEditable) {
+                const editLink = document.createElement("a");
+                editLink.className = "btn btn-primary";
+                editLink.href = "/demande/nouveau?editId=" + encodeURIComponent(detail.id);
+                editLink.textContent = "Modifier le dossier";
+                actions.appendChild(editLink);
+            }
+
+            const acceptButton = document.createElement("button");
+            acceptButton.type = "button";
+            acceptButton.className = "btn btn-primary";
+            acceptButton.textContent = "Accepter";
+            acceptButton.addEventListener("click", async () => {
+                await updateAdminStatus(detail.id, "accepte");
+            });
+
+            const refuseButton = document.createElement("button");
+            refuseButton.type = "button";
+            refuseButton.className = "btn btn-outline";
+            refuseButton.textContent = "Refuser";
+            refuseButton.addEventListener("click", async () => {
+                await updateAdminStatus(detail.id, "refuse");
+            });
+
+            actions.appendChild(acceptButton);
+            actions.appendChild(refuseButton);
+            detailContent.appendChild(actions);
+        }
+
         const pieceSection = document.createElement("article");
         pieceSection.className = "detail-block";
 
@@ -271,6 +342,25 @@
             detailPlaceholder.hidden = false;
             detailContent.hidden = true;
             detailPlaceholder.textContent = "Impossible de charger le detail de la demande.";
+        }
+    }
+
+    async function updateAdminStatus(idDemande, action) {
+        try {
+            setFeedback(action === "accepte" ? "Validation en cours..." : "Refus en cours...", false);
+
+            const response = await fetch("/api/demandes/" + idDemande + "/" + action, {
+                method: "POST"
+            });
+
+            if (!response.ok) {
+                throw await buildApiError(response);
+            }
+
+            setFeedback(action === "accepte" ? "Demande acceptee." : "Demande refusee.", true);
+            await loadDetail(idDemande);
+        } catch (error) {
+            setFeedback("Impossible de mettre a jour le statut: " + (error.message || "erreur inconnue"));
         }
     }
 

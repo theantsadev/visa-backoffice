@@ -98,6 +98,8 @@ public class DemandeListeService {
 
         return new DemandeDetailDTO(
                 demande.getId(),
+            getIdTypeVisa(demande),
+            demande.getTypeDemande() != null ? demande.getTypeDemande().getId() : null,
                 demande.getDateDemande(),
                 getStatutActuelLibelle(demande.getId()),
                 getTypeVisaLibelle(demande),
@@ -148,6 +150,8 @@ public class DemandeListeService {
 
         return new DemandeDetailDTO.DemandeurDetailDTO(
                 demandeur.getIdDemandeur(),
+            demandeur.getNationnalite() == null ? null : demandeur.getNationnalite().getId(),
+            demandeur.getSituationFamiliale() == null ? null : demandeur.getSituationFamiliale().getId(),
                 demandeur.getNom(),
                 demandeur.getPrenom(),
                 demandeur.getDateNaissance(),
@@ -187,6 +191,15 @@ public class DemandeListeService {
         }
 
         return demandeNouveauTitre.getTypeVisa().getLibelle();
+    }
+
+    private Integer getIdTypeVisa(Demande demande) {
+        DemandeNouveauTitre demandeNouveauTitre = getDemandeNouveauTitre(demande);
+        if (demandeNouveauTitre == null || demandeNouveauTitre.getTypeVisa() == null) {
+            return null;
+        }
+
+        return demandeNouveauTitre.getTypeVisa().getId();
     }
 
     private Passport getPassport(Demande demande) {

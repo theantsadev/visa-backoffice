@@ -70,26 +70,6 @@
 
                 <div class="step-panel" data-step-panel="2">
                     <h2>Etape 2 - Demandeur</h2>
-                    <div class="quick-fill-card">
-                        <p class="hint">Saisie rapide: selectionnez des donnees existantes.</p>
-                        <div class="grid two">
-                            <label>Demandeur existant
-                                <select id="quickDemandeur">
-                                    <option value="">Selectionner</option>
-                                </select>
-                            </label>
-                            <label>Passeport existant (du demandeur)
-                                <select id="quickPassport" disabled>
-                                    <option value="">Selectionner</option>
-                                </select>
-                            </label>
-                            <label class="full">Visa transformable existant (du passeport)
-                                <select id="quickVisa" disabled>
-                                    <option value="">Selectionner</option>
-                                </select>
-                            </label>
-                        </div>
-                    </div>
                     <div class="grid two">
                         <label>Nom *
                             <input name="nom" required>
@@ -179,7 +159,8 @@
 
                 <div class="step-panel" data-step-panel="5">
                     <h2>Etape 5 - Pieces a fournir</h2>
-                    <p class="hint">Ajoutez un fichier pour chaque piece obligatoire. Un seul fichier est accepte par piece.</p>
+                    <p class="hint">Ajoutez un fichier pour chaque piece obligatoire. Un seul fichier est accepte par
+                        piece.</p>
                     <div id="piecesContainer" class="pieces-list"></div>
                 </div>
 
@@ -194,6 +175,7 @@
         </section>
     </main>
 
+    <script src="/js/demande-contracts.js" th:src="@{/js/demande-contracts.js(v=${cacheBuster})}"></script>
     <script src="/js/demande-app.js" th:src="@{/js/demande-app.js(v=${cacheBuster})}"></script>
 </body>
 

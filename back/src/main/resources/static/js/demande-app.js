@@ -4,585 +4,629 @@
         return;
     }
 
-    const steps = Array.from(document.querySelectorAll(".step"));
-    const panels = Array.from(document.querySelectorAll(".step-panel"));
-    const feedback = document.getElementById("feedback");
-    const piecesContainer = document.getElementById("piecesContainer");
-    const btnPrev = document.getElementById("btnPrev");
-    const btnNext = document.getElementById("btnNext");
-    const btnSubmit = document.getElementById("btnSubmit");
-    const quickDemandeur = document.getElementById("quickDemandeur");
-    const quickPassport = document.getElementById("quickPassport");
-    const quickVisa = document.getElementById("quickVisa");
-    const sansDonnees = document.getElementById("sansDonnees");
-    const sansDonneesWrapper = document.getElementById("sansDonneesWrapper");
-    const transfertNote = document.getElementById("transfertNote");
-    const nouveauPassportNote = document.getElementById("nouveauPassportNote");
-    const nouveauPassportFields = document.getElementById("nouveauPassportFields");
+    const stepItems = Array.from(document.querySelectorAll(".step"));
+    const stepPanels = Array.from(document.querySelectorAll(".step-panel"));
+    const statusMessageEl = document.getElementById("feedback");
+    const piecesListEl = document.getElementById("piecesContainer");
+    const previousStepButton = document.getElementById("btnPrev");
+    const nextStepButton = document.getElementById("btnNext");
+    const submitButton = document.getElementById("btnSubmit");
+    const sansDonneesCheckbox = document.getElementById("sansDonnees");
+    const sansDonneesBlock = document.getElementById("sansDonneesWrapper");
+    const transferHelp = document.getElementById("transfertNote");
+    const newPassportHelp = document.getElementById("nouveauPassportNote");
+    const newPassportFields = document.getElementById("nouveauPassportFields");
     const confirmationUrl = form.dataset.confirmationUrl || "/demande/confirmation";
-    const demandeTitle = document.getElementById("demandeTitle");
-    const AUTOSAVE_KEY = "demande-nouveau-autosave-v1";
-    const AUTOSAVE_STEP_MAX = 5;
+    const titleEl = document.getElementById("demandeTitle");
+    const editId = new URLSearchParams(window.location.search).get("editId");
+    const editMode = Boolean(editId);
 
-    let currentStep = 1;
-    const state = {
-        idDemandeur: null,
-        idPassport: null,
-        idVisaTransformable: null,
-        idTypeVisa: null,
-        idTypeDemande: null,
-        piecesSelection: [],
-        quick: {
-            demandeurs: [],
-            passports: [],
-            visas: []
-        }
+    const demandContracts = window.DemandeContracts || {};
+    const stepMax = demandContracts.stepMax || 5;
+    const formModels = demandContracts.formModels || {};
+    const stepContracts = demandContracts.stepContracts || {};
+
+    const requestDraft = {
+        editDetail: null,
+        requestIds: {
+            idDemandeur: null,
+            idPassport: null,
+            idVisaTransformable: null
+        },
+        requestSelection: {},
+        pieces: []
     };
 
-    const references = [
-        { field: "idNationalite", url: "/api/nationalites" },
-        { field: "idStatutFamilial", url: "/api/statuts-familiaux" },
-        { field: "idTypeVisa", url: "/api/types-visa" },
-        { field: "idTypeDemande", url: "/api/types-demande" }
+    const referenceSources = [
+        { fieldName: "idNationalite", url: "/api/nationalites" },
+        { fieldName: "idStatutFamilial", url: "/api/statuts-familiaux" },
+        { fieldName: "idTypeVisa", url: "/api/types-visa" },
+        { fieldName: "idTypeDemande", url: "/api/types-demande" }
     ];
 
-    function setMessage(message, ok) {
-        feedback.textContent = message || "";
-        feedback.classList.toggle("ok", Boolean(ok));
+    let activeStep = 1;
+
+    function setStatusMessage(message, isSuccess) {
+        statusMessageEl.textContent = message || "";
+        statusMessageEl.classList.toggle("ok", Boolean(isSuccess));
     }
 
-    function syncUi() {
-        steps.forEach((stepEl) => {
-            const step = Number(stepEl.dataset.step);
-            stepEl.classList.toggle("is-active", step === currentStep);
-            stepEl.classList.toggle("is-done", step < currentStep);
-        });
-
-        panels.forEach((panel) => {
-            panel.classList.toggle("is-active", Number(panel.dataset.stepPanel) === currentStep);
-        });
-
-        btnPrev.style.display = currentStep === 1 ? "none" : "inline-block";
-        btnNext.style.display = currentStep === 5 ? "none" : "inline-block";
-        btnSubmit.style.display = currentStep === 5 ? "inline-block" : "none";
+    function getFieldElement(fieldName) {
+        return form.querySelector("[name='" + fieldName + "']");
     }
 
-    function required(selector, label) {
-        const el = form.querySelector(selector);
-        if (!el || !String(el.value || "").trim()) {
-            return label + " est obligatoire.";
-        }
-        return null;
+    function getFieldValue(fieldName) {
+        const element = getFieldElement(fieldName);
+        return element ? String(element.value || "").trim() : "";
     }
 
-    function safeStorageAvailable() {
-        try {
-            return typeof window !== "undefined" && window.localStorage;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    function saveAutosave() {
-        if (!safeStorageAvailable()) {
-            return;
-        }
-
-        const fields = {};
-        const namedInputs = form.querySelectorAll("input[name], select[name], textarea[name]");
-        namedInputs.forEach((el) => {
-            fields[el.name] = el.value;
-        });
-
-        const payload = {
-            step: currentStep,
-            fields: fields,
-            piecesSelection: state.piecesSelection,
-            quickSelection: {
-                idDemandeur: quickDemandeur ? quickDemandeur.value : "",
-                idPassport: quickPassport ? quickPassport.value : "",
-                idVisa: quickVisa ? quickVisa.value : ""
-            }
-        };
-
-        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(payload));
-    }
-
-    function restoreAutosave() {
-        if (!safeStorageAvailable()) {
-            return false;
-        }
-
-        const raw = localStorage.getItem(AUTOSAVE_KEY);
-        if (!raw) {
-            return false;
-        }
-
-        try {
-            const payload = JSON.parse(raw);
-            const fields = payload.fields || {};
-
-            Object.keys(fields).forEach((name) => {
-                const el = form.querySelector("[name='" + name + "']");
-                if (el) {
-                    el.value = fields[name] == null ? "" : String(fields[name]);
-                }
-            });
-
-            if (Array.isArray(payload.piecesSelection)) {
-                state.piecesSelection = payload.piecesSelection.map((item) => ({
-                    idPieceAFournir: item.idPieceAFournir,
-                    selected: Boolean(item.selected || item.fournie),
-                    obligatoire: Boolean(item.obligatoire)
-                }));
-            }
-
-            if (payload.step) {
-                const step = Number(payload.step);
-                if (!Number.isNaN(step) && step >= 1) {
-                    currentStep = Math.min(AUTOSAVE_STEP_MAX, step);
-                }
-            }
-
-            return true;
-        } catch (e) {
-            localStorage.removeItem(AUTOSAVE_KEY);
-            return false;
-        }
-    }
-
-    function clearAutosave() {
-        if (!safeStorageAvailable()) {
-            return;
-        }
-
-        localStorage.removeItem(AUTOSAVE_KEY);
-    }
-
-    function validateStep(step) {
-        if (step === 1) {
-            return required("[name='idTypeDemande']", "Type de demande")
-                || required("[name='idTypeVisa']", "Type de visa");
-        }
-        if (step === 2) {
-            return required("[name='nom']", "Nom")
-                || required("[name='dateNaissance']", "Date de naissance")
-                || required("[name='telephone']", "Telephone")
-                || required("[name='idNationalite']", "Nationalite")
-                || required("[name='idStatutFamilial']", "Situation familiale");
-        }
-        if (step === 3) {
-            if (isDemandeTransfert()) {
-                return required("[name='numero']", "Numero de passeport")
-                    || required("[name='numeroNouveau']", "Numero nouveau passeport");
-            }
-            return required("[name='numero']", "Numero de passeport");
-        }
-        if (step === 4) {
-            if (isDemandeDuplicata() || isDemandeTransfert()) {
-                return required("[name='referenceVisa']", "Reference visa")
-                    || required("[name='dateEntreeMada']", "Date entree Madagascar");
-            }
-            if (isSansDonneesChecked()) {
-                return null;
-            }
-            return required("[name='referenceVisa']", "Reference visa")
-                || required("[name='dateEntreeMada']", "Date entree Madagascar");
-        }
-        if (step === 5) {
-            const missing = state.piecesSelection.filter((p) => p.obligatoire && !p.file);
-            if (missing.length > 0) {
-                return "Toutes les pieces obligatoires doivent avoir un fichier.";
-            }
-        }
-        return null;
-    }
-
-    function getValue(name) {
-        const el = form.querySelector("[name='" + name + "']");
-        return el ? String(el.value || "").trim() : "";
-    }
-
-    function toNumber(name) {
-        const value = getValue(name);
+    function getFieldNumber(fieldName) {
+        const value = getFieldValue(fieldName);
         return value ? Number(value) : null;
     }
 
-    function getIdTypeDemande() {
-        return toNumber("idTypeDemande");
+    function getModelDefinition(modelName) {
+        return formModels[modelName] || {};
     }
 
-    function isSansDonneesChecked() {
-        return Boolean(sansDonnees && sansDonnees.checked);
+    function readSection(modelName) {
+        const model = getModelDefinition(modelName);
+        const values = {};
+
+        Object.keys(model).forEach((fieldName) => {
+            const fieldType = model[fieldName].type;
+            const rawValue = getFieldValue(fieldName);
+            values[fieldName] = fieldType === "number" ? (rawValue ? Number(rawValue) : null) : (rawValue || null);
+        });
+
+        return values;
     }
 
-    function isDemandeDuplicata() {
-        return getIdTypeDemande() === 2;
+    function writeSection(modelName, values) {
+        const model = getModelDefinition(modelName);
+        Object.keys(model).forEach((fieldName) => {
+            if (values && values[fieldName] != null) {
+                const element = getFieldElement(fieldName);
+                if (element) {
+                    element.value = String(values[fieldName]);
+                }
+            }
+        });
     }
 
-    function isDemandeTransfert() {
-        return getIdTypeDemande() === 3;
+    function getRequiredFields(modelName) {
+        return Object.keys(getModelDefinition(modelName))
+            .filter((fieldName) => Boolean(getModelDefinition(modelName)[fieldName].required))
+            .map((fieldName) => ({
+                name: fieldName,
+                label: getModelDefinition(modelName)[fieldName].label || fieldName
+            }));
     }
 
-    function updateDemandeTitle() {
-        if (!demandeTitle) {
+    function validateSection(modelName) {
+        const requiredFields = getRequiredFields(modelName);
+        for (const field of requiredFields) {
+            if (!getFieldValue(field.name)) {
+                return field.label + " est obligatoire.";
+            }
+        }
+        return null;
+    }
+
+    function validateCurrentStep(step) {
+        const stepContract = stepContracts[step] || {};
+        if (step === 5) {
+            return validatePiecesStep();
+        }
+
+        if (step === 3 && isRequestTypeTransfer()) {
+            const passportError = validateSection(stepContract.model);
+            if (passportError) {
+                return passportError;
+            }
+            return validateSection(stepContract.transferModel);
+        }
+
+        return stepContract.model ? validateSection(stepContract.model) : null;
+    }
+
+    function isRequestTypeDuplicata() {
+        return getFieldNumber("idTypeDemande") === 2;
+    }
+
+    function isRequestTypeTransfer() {
+        return getFieldNumber("idTypeDemande") === 3;
+    }
+
+    function isWithoutDataMode() {
+        return Boolean(sansDonneesCheckbox && sansDonneesCheckbox.checked);
+    }
+
+    function syncWizardUi() {
+        stepItems.forEach((stepItem) => {
+            const stepNumber = Number(stepItem.dataset.step);
+            stepItem.classList.toggle("is-active", stepNumber === activeStep);
+            stepItem.classList.toggle("is-done", stepNumber < activeStep);
+        });
+
+        stepPanels.forEach((panel) => {
+            panel.classList.toggle("is-active", Number(panel.dataset.stepPanel) === activeStep);
+        });
+
+        previousStepButton.style.display = activeStep === 1 ? "none" : "inline-block";
+        nextStepButton.style.display = activeStep === stepMax ? "none" : "inline-block";
+        submitButton.style.display = activeStep === stepMax ? "inline-block" : "none";
+    }
+
+    function syncRequestTypeUi() {
+        const showWithoutDataToggle = isRequestTypeDuplicata() || isRequestTypeTransfer();
+        if (sansDonneesBlock) {
+            sansDonneesBlock.hidden = !showWithoutDataToggle;
+        }
+
+        if (!showWithoutDataToggle && sansDonneesCheckbox) {
+            sansDonneesCheckbox.checked = false;
+        }
+
+        if (transferHelp) {
+            transferHelp.hidden = !isRequestTypeTransfer();
+        }
+
+        if (newPassportHelp) {
+            newPassportHelp.hidden = !isRequestTypeTransfer();
+        }
+
+        if (newPassportFields) {
+            newPassportFields.hidden = !isRequestTypeTransfer();
+        }
+    }
+
+    function syncTitle() {
+        if (!titleEl) {
             return;
         }
 
-        const select = form.querySelector("[name='idTypeDemande']");
+        const typeSelect = getFieldElement("idTypeDemande");
+        if (!typeSelect) {
+            return;
+        }
+
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        const label = selectedOption && selectedOption.value ? selectedOption.textContent.trim() : "Nouveau titre";
+        titleEl.textContent = editMode ? "modifier une demande" : "Demande de - " + label;
+    }
+
+    function getCategoryLabel(category) {
+        return category === "COMMUNE" ? "Commune" : "Spécifique";
+    }
+
+    function getTypeLabel(isRequired) {
+        return isRequired === true ? "Obligatoire" : "Facultatif";
+    }
+
+    function getFileNameFromUrl(url) {
+        if (!url) {
+            return "";
+        }
+
+        const parts = String(url).split("/");
+        return parts.length > 0 ? parts[parts.length - 1] : String(url);
+    }
+
+    function fillSelect(fieldName, rows) {
+        const select = getFieldElement(fieldName);
         if (!select) {
             return;
         }
 
-        const option = select.options[select.selectedIndex];
-        const label = option && option.value ? option.textContent.trim() : "Nouveau titre";
-        demandeTitle.textContent = "Demande de - " + label;
+        const emptyOption = select.querySelector("option[value='']");
+        select.innerHTML = "";
+        if (emptyOption) {
+            select.appendChild(emptyOption);
+        }
+
+        rows.forEach((row) => {
+            const option = document.createElement("option");
+            option.value = String(row.id);
+            option.textContent = row.libelle || row.nom || ("Valeur " + row.id);
+            select.appendChild(option);
+        });
     }
 
-    function updateDemandeTypeUi() {
-        const showSansDonnees = isDemandeDuplicata() || isDemandeTransfert();
-        if (sansDonneesWrapper) {
-            sansDonneesWrapper.hidden = !showSansDonnees;
+    function loadEditDetailIntoForm(detail) {
+        if (!detail) {
+            return;
         }
 
-        if (!showSansDonnees && sansDonnees) {
-            sansDonnees.checked = false;
+        requestDraft.editDetail = detail;
+        requestDraft.requestIds.idDemandeur = detail.demandeur && detail.demandeur.idDemandeur ? detail.demandeur.idDemandeur : null;
+        requestDraft.requestIds.idPassport = detail.passport && detail.passport.idPassport ? detail.passport.idPassport : null;
+        requestDraft.requestIds.idVisaTransformable = detail.visaTransformable && detail.visaTransformable.idVisaTransformable
+            ? detail.visaTransformable.idVisaTransformable
+            : null;
+
+        writeSection("requestSelection", {
+            idTypeDemande: detail.idTypeDemande,
+            idTypeVisa: detail.idTypeVisa
+        });
+        writeSection("demandeurForm", detail.demandeur || {});
+        writeSection("passportForm", detail.passport || {});
+        writeSection("visaTransformableForm", detail.visaTransformable || {});
+
+        if (sansDonneesCheckbox) {
+            sansDonneesCheckbox.checked = detail.idTypeDemande === 2 || detail.idTypeDemande === 3;
         }
 
-        if (transfertNote) {
-            transfertNote.hidden = !isDemandeTransfert();
-        }
-
-        if (nouveauPassportNote) {
-            nouveauPassportNote.hidden = !isDemandeTransfert();
-        }
-
-        if (nouveauPassportFields) {
-            nouveauPassportFields.hidden = !isDemandeTransfert();
-        }
-
-        if (quickVisa && isSansDonneesChecked() && isDemandeTransfert() == false && isDemandeDuplicata() == false) {
-            quickVisa.value = "";
-        }
+        syncRequestTypeUi();
+        syncTitle();
     }
 
-    function getSelectedVisaId() {
-        if (!quickVisa || !quickVisa.value) {
+    async function loadEditDetail() {
+        if (!editMode) {
             return null;
         }
 
-        const value = Number(quickVisa.value);
-        return Number.isNaN(value) ? null : value;
+        const detail = await getJson("/api/demandes/" + Number(editId));
+        loadEditDetailIntoForm(detail);
+        return detail;
     }
 
-    function getCategorieLabel(categorie) {
-        if (categorie === "COMMUNE") {
-            return "Commune";
-        }
-
-        return "Spécifique";
-    }
-
-    function getTypeLabel(obligatoire) {
-        if (obligatoire === true) {
-            return "Obligatoire";
-        }
-
-        return "Facultatif";
-    }
-
-    function fillSelect(fieldName, items) {
-        const select = form.querySelector("[name='" + fieldName + "']");
-        if (!select) {
-            return;
-        }
-
-        const first = select.querySelector("option[value='']");
-        select.innerHTML = "";
-        if (first) {
-            select.appendChild(first);
-        }
-
-        items.forEach((item) => {
-            const option = document.createElement("option");
-            option.value = String(item.id);
-            option.textContent = item.libelle || item.nom || ("Valeur " + item.id);
-            select.appendChild(option);
+    async function loadReferenceData() {
+        const rowsBySource = await Promise.all(referenceSources.map((source) => getJson(source.url)));
+        referenceSources.forEach((source, index) => {
+            fillSelect(source.fieldName, Array.isArray(rowsBySource[index]) ? rowsBySource[index] : []);
         });
     }
 
-    function fillQuickSelect(select, items, valueKey) {
-        if (!select) {
-            return;
-        }
-
-        const previous = String(select.value || "");
-        const first = document.createElement("option");
-        first.value = "";
-        first.textContent = "Selectionner";
-
-        select.innerHTML = "";
-        select.appendChild(first);
-
-        items.forEach((item) => {
-            const option = document.createElement("option");
-            option.value = String(item[valueKey]);
-            option.textContent = item.label || ("Valeur " + item[valueKey]);
-            select.appendChild(option);
-        });
-
-        const found = items.some((item) => String(item[valueKey]) === previous);
-        if (found) {
-            select.value = previous;
-        }
-    }
-
-    function applyDemandeurToForm(item) {
-        if (!item) {
-            return;
-        }
-
-        const mapping = {
-            nom: item.nom,
-            prenom: item.prenom,
-            dateNaissance: item.dateNaissance,
-            nomJeuneFille: item.nomJeuneFille,
-            adresseMada: item.adresseMada,
-            telephone: item.telephone,
-            email: item.email,
-            idNationalite: item.idNationalite,
-            idStatutFamilial: item.idStatutFamilial
-        };
-
-        Object.keys(mapping).forEach((name) => {
-            const el = form.querySelector("[name='" + name + "']");
-            if (el && mapping[name] != null) {
-                el.value = String(mapping[name]);
-            }
-        });
-    }
-
-    function applyPassportToForm(item) {
-        if (!item) {
-            return;
-        }
-
-        const mapping = {
-            numero: item.numero,
-            dateDelivrance: item.dateDelivrance,
-            dateExpiration: item.dateExpiration
-        };
-
-        Object.keys(mapping).forEach((name) => {
-            const el = form.querySelector("[name='" + name + "']");
-            if (el && mapping[name] != null) {
-                el.value = String(mapping[name]);
-            }
-        });
-    }
-
-    function applyVisaToForm(item) {
-        if (!item) {
-            return;
-        }
-
-        const mapping = {
-            referenceVisa: item.referenceVisa,
-            natureVisa: item.natureVisa,
-            dateEntreeMada: item.dateEntreeMada,
-            lieuEntreeMada: item.lieuEntreeMada,
-            dateSortie: item.dateSortie
-        };
-
-        Object.keys(mapping).forEach((name) => {
-            const el = form.querySelector("[name='" + name + "']");
-            if (el && mapping[name] != null) {
-                el.value = String(mapping[name]);
-            }
-        });
-    }
-
-    async function loadQuickDemandeurs() {
-        if (!quickDemandeur) {
-            return;
-        }
-
-        const rows = await getJson("/api/demandeurs-rapides");
-        state.quick.demandeurs = Array.isArray(rows) ? rows : [];
-        fillQuickSelect(quickDemandeur, state.quick.demandeurs, "idDemandeur");
-    }
-
-    async function loadQuickPassports(idDemandeur) {
-        if (!quickPassport) {
-            return;
-        }
-
-        if (!idDemandeur) {
-            state.quick.passports = [];
-            fillQuickSelect(quickPassport, [], "idPassport");
-            quickPassport.disabled = true;
-            return;
-        }
-
-        const rows = await getJson("/api/passports-rapides?idDemandeur=" + Number(idDemandeur));
-        state.quick.passports = Array.isArray(rows) ? rows : [];
-        fillQuickSelect(quickPassport, state.quick.passports, "idPassport");
-        quickPassport.disabled = false;
-    }
-
-    async function loadQuickVisas(idDemandeur, idPassport) {
-        if (!quickVisa) {
-            return;
-        }
-
-        if (!idDemandeur || !idPassport) {
-            state.quick.visas = [];
-            fillQuickSelect(quickVisa, [], "id");
-            quickVisa.disabled = true;
-            return;
-        }
-
-        const rows = await getJson("/api/visas-transformables-rapides?idDemandeur=" + Number(idDemandeur)
-            + "&idPassport=" + Number(idPassport));
-        state.quick.visas = Array.isArray(rows) ? rows : [];
-        fillQuickSelect(quickVisa, state.quick.visas, "id");
-        quickVisa.disabled = false;
-    }
-
-    async function restoreQuickSelections() {
-        if (!safeStorageAvailable()) {
-            return;
-        }
-
-        const raw = localStorage.getItem(AUTOSAVE_KEY);
-        if (!raw) {
-            return;
-        }
-
-        try {
-            const payload = JSON.parse(raw);
-            const quickSelection = payload.quickSelection || {};
-            const idDemandeur = String(quickSelection.idDemandeur || "");
-            const idPassport = String(quickSelection.idPassport || "");
-            const idVisa = String(quickSelection.idVisa || "");
-
-            if (quickDemandeur && idDemandeur) {
-                quickDemandeur.value = idDemandeur;
-                const demandeur = state.quick.demandeurs.find((row) => String(row.idDemandeur) === idDemandeur);
-                if (demandeur) {
-                    applyDemandeurToForm(demandeur);
-                    await loadQuickPassports(demandeur.idDemandeur);
-                }
-            }
-
-            if (quickPassport && idPassport) {
-                quickPassport.value = idPassport;
-                const passport = state.quick.passports.find((row) => String(row.idPassport) === idPassport);
-                if (passport && quickDemandeur && quickDemandeur.value) {
-                    applyPassportToForm(passport);
-                    await loadQuickVisas(Number(quickDemandeur.value), passport.idPassport);
-                }
-            }
-
-            if (quickVisa && idVisa) {
-                quickVisa.value = idVisa;
-                const visa = state.quick.visas.find((row) => String(row.id) === idVisa);
-                if (visa) {
-                    applyVisaToForm(visa);
-                }
-            }
-        } catch (e) {
-            // ignore invalid autosave payload
-        }
-    }
-
-    async function loadReferences() {
-        const results = await Promise.all(references.map((config) => getJson(config.url)));
-        references.forEach((config, index) => {
-            fillSelect(config.field, Array.isArray(results[index]) ? results[index] : []);
-        });
-    }
-
-    async function buildPieces() {
-        const idTypeVisa = toNumber("idTypeVisa");
-        const idTypeDemande = toNumber("idTypeDemande");
-        if (!idTypeDemande) {
+    async function loadPiecesCatalog() {
+        const requestSelection = readSection("requestSelection");
+        if (!requestSelection.idTypeDemande) {
             throw new Error("Type de demande requis pour charger les pieces.");
         }
-        if (!idTypeVisa) {
+        if (!requestSelection.idTypeVisa) {
             throw new Error("Type de visa requis pour charger les pieces.");
         }
 
-        const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + idTypeVisa
-            + "&typeDemande=" + idTypeDemande);
+        const rows = await getJson("/api/pieces-a-fournir?typeVisa=" + requestSelection.idTypeVisa
+            + "&typeDemande=" + requestSelection.idTypeDemande);
 
-        const previousSelection = new Map(
-            state.piecesSelection.map((item) => [item.idPieceAFournir, Boolean(item.selected)])
+        const existingPieces = new Map(
+            ((requestDraft.editDetail && requestDraft.editDetail.piecesJointes) || []).map((piece) => [piece.idPieceAFournir, piece])
         );
 
-        state.piecesSelection = rows.map((piece) => ({
-            idPieceAFournir: piece.idPieceAFournir,
-            selected: Boolean(previousSelection.get(piece.idPieceAFournir)),
-            file: null,
-            fileName: "",
-            obligatoire: Boolean(piece.obligatoire)
-        }));
+        requestDraft.pieces = rows.map((piece) => {
+            const existingPiece = existingPieces.get(piece.idPieceAFournir);
+            return {
+                idPieceAFournir: piece.idPieceAFournir,
+                nom: piece.nom,
+                categorie: piece.categorie,
+                obligatoire: Boolean(piece.obligatoire),
+                file: null,
+                fileName: "",
+                existingLien: existingPiece ? existingPiece.lien || "" : "",
+                existingFileName: getFileNameFromUrl(existingPiece ? existingPiece.lien || "" : "")
+            };
+        });
 
-        piecesContainer.innerHTML = "";
-        if (!rows.length) {
-            piecesContainer.textContent = "Aucune piece obligatoire trouvee pour cette combinaison.";
+        renderPiecesCatalog();
+    }
+
+    function renderPiecesCatalog() {
+        piecesListEl.innerHTML = "";
+
+        if (!requestDraft.pieces.length) {
+            piecesListEl.textContent = "Aucune piece obligatoire trouvee pour cette combinaison.";
             return;
         }
 
-        rows.forEach((piece) => {
-            const wrapper = document.createElement("label");
-            wrapper.className = "piece-row";
+        requestDraft.pieces.forEach((piece) => {
+            const row = document.createElement("label");
+            row.className = "piece-row";
 
-            const left = document.createElement("div");
-            left.className = "piece-row-info";
-            left.textContent = piece.nom;
+            const info = document.createElement("div");
+            info.className = "piece-row-info";
+            info.textContent = piece.nom;
 
             const tag = document.createElement("span");
             tag.className = "piece-tag";
-            tag.textContent = getCategorieLabel(piece.categorie) + ' | ' + getTypeLabel(piece.obligatoire);
-            left.appendChild(tag);
+            tag.textContent = getCategoryLabel(piece.categorie) + " | " + getTypeLabel(piece.obligatoire);
+            info.appendChild(tag);
 
-            const upload = document.createElement("div");
-            upload.className = "piece-upload";
+            const uploadArea = document.createElement("div");
+            uploadArea.className = "piece-upload";
 
             const input = document.createElement("input");
             input.type = "file";
             input.accept = ".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.zip";
             input.addEventListener("change", () => {
-                const item = state.piecesSelection.find((p) => p.idPieceAFournir === piece.idPieceAFournir);
-                if (item) {
-                    item.file = input.files && input.files.length > 0 ? input.files[0] : null;
-                    item.fileName = item.file ? item.file.name : "";
-                }
-                fileName.textContent = item && item.fileName ? item.fileName : "Aucun fichier selectionne";
+                piece.file = input.files && input.files.length > 0 ? input.files[0] : null;
+                piece.fileName = piece.file ? piece.file.name : "";
+                fileLabel.textContent = piece.fileName || "Aucun fichier selectionne";
             });
 
-            const fileName = document.createElement("span");
-            fileName.className = "piece-filename";
-            fileName.textContent = "Aucun fichier selectionne";
+            const fileLabel = document.createElement("span");
+            fileLabel.className = "piece-filename";
+            fileLabel.textContent = piece.existingFileName
+                ? "Fichier actuel: " + piece.existingFileName
+                : "Aucun fichier selectionne";
 
-            wrapper.appendChild(left);
-            upload.appendChild(input);
-            upload.appendChild(fileName);
-            wrapper.appendChild(upload);
-            piecesContainer.appendChild(wrapper);
+            if (piece.existingLien) {
+                const existingLink = document.createElement("a");
+                existingLink.className = "piece-link";
+                existingLink.href = piece.existingLien;
+                existingLink.target = "_blank";
+                existingLink.rel = "noopener noreferrer";
+                existingLink.textContent = "Ouvrir le fichier actuel";
+                uploadArea.appendChild(existingLink);
+            }
+
+            row.appendChild(info);
+            uploadArea.appendChild(input);
+            uploadArea.appendChild(fileLabel);
+            row.appendChild(uploadArea);
+            piecesListEl.appendChild(row);
         });
     }
 
-    async function postMultipart(url, body, files) {
+    function getUploadedPieces() {
+        return requestDraft.pieces
+            .filter((piece) => piece.file)
+            .map((piece) => ({ idPieceAFournir: piece.idPieceAFournir }));
+    }
+
+    function getUploadedFiles() {
+        return requestDraft.pieces
+            .filter((piece) => piece.file)
+            .map((piece) => piece.file);
+    }
+
+    function validatePiecesStep() {
+        const missingRequiredPieces = requestDraft.pieces.filter((piece) => {
+            const existingAttachmentIsEnough = editMode && Boolean(piece.existingLien);
+            return piece.obligatoire && !piece.file && !existingAttachmentIsEnough;
+        });
+        if (missingRequiredPieces.length > 0) {
+            return "Toutes les pieces obligatoires doivent avoir un fichier.";
+        }
+        return null;
+    }
+
+    function buildRequestEnvelope() {
+        return {
+            idDemandeur: requestDraft.requestIds.idDemandeur,
+            idPassport: requestDraft.requestIds.idPassport,
+            idVisaTransformable: requestDraft.requestIds.idVisaTransformable,
+            idTypeVisa: readSection("requestSelection").idTypeVisa,
+            idTypeDemande: readSection("requestSelection").idTypeDemande
+        };
+    }
+
+    function buildSourceRequestEnvelope() {
+        const requestEnvelope = buildRequestEnvelope();
+        return {
+            ...requestEnvelope,
+            idTypeDemande: 1,
+            piecesJointes: getUploadedPieces()
+        };
+    }
+
+    function buildTransferPassportPayload() {
+        return readSection("passportNouveauForm");
+    }
+
+    async function createDemandeur() {
+        const payload = readSection("demandeurForm");
+        const response = await postJson("/api/demandeurs", payload);
+        requestDraft.requestIds.idDemandeur = response.idDemandeur;
+        return response;
+    }
+
+    async function createPassport() {
+        const payload = readSection("passportForm");
+        const response = await postJson("/api/demandeurs/" + requestDraft.requestIds.idDemandeur + "/passports", payload);
+        requestDraft.requestIds.idPassport = response.idPassport;
+        return response;
+    }
+
+    async function createTransferPassport() {
+        const payload = buildTransferPassportPayload();
+        if (!payload.numeroNouveau) {
+            throw new Error("Veuillez renseigner le numero du nouveau passeport.");
+        }
+
+        const response = await postJson("/api/demandeurs/" + requestDraft.requestIds.idDemandeur + "/passports", {
+            numero: payload.numeroNouveau,
+            dateDelivrance: payload.dateDelivranceNouveau || null,
+            dateExpiration: payload.dateExpirationNouveau || null
+        });
+        return response;
+    }
+
+    async function createVisaTransformable() {
+        const payload = readSection("visaTransformableForm");
+        const response = await postJson("/api/passports/" + requestDraft.requestIds.idPassport + "/visas-transformables", payload);
+        requestDraft.requestIds.idVisaTransformable = response.id;
+        return response;
+    }
+
+    function buildMultipartPayload(basePayload) {
+        return postMultipart(basePayload.url, basePayload.body, basePayload.files, basePayload.method || "POST");
+    }
+
+    async function submitNewWithData() {
+        await createVisaTransformable();
+
+        return buildMultipartPayload({
+            url: "/api/demandes/nouveau-titre",
+            body: {
+                ...buildRequestEnvelope(),
+                piecesJointes: getUploadedPieces()
+            },
+            files: getUploadedFiles()
+        });
+    }
+
+    async function submitWithoutData() {
+        const requestSelection = readSection("requestSelection");
+        let newPassportResponse = null;
+        let visaTransformableId = requestDraft.requestIds.idVisaTransformable;
+
+        if (isRequestTypeTransfer()) {
+            newPassportResponse = await createTransferPassport();
+        }
+
+        if (!visaTransformableId) {
+            const visaPayload = readSection("visaTransformableForm");
+            if (!visaPayload.referenceVisa || !visaPayload.dateEntreeMada) {
+                throw new Error("Veuillez renseigner le visa transformable.");
+            }
+            const visaResponse = await createVisaTransformable();
+            visaTransformableId = visaResponse.id;
+        }
+
+        const sourceRequest = {
+            idDemandeur: requestDraft.requestIds.idDemandeur,
+            idPassport: requestDraft.requestIds.idPassport,
+            idVisaTransformable: visaTransformableId,
+            idTypeVisa: requestSelection.idTypeVisa,
+            idTypeDemande: 1,
+            piecesJointes: getUploadedPieces()
+        };
+
+        if (isRequestTypeDuplicata()) {
+            return buildMultipartPayload({
+                url: "/api/demandes/duplicata/sans-donnees",
+                body: {
+                    demandeNouveauTitre: sourceRequest,
+                    piecesCible: getUploadedPieces()
+                },
+                files: getUploadedFiles()
+            });
+        }
+
+        if (isRequestTypeTransfer()) {
+            return buildMultipartPayload({
+                url: "/api/demandes/transfert/sans-donnees",
+                body: {
+                    demandeNouveauTitre: sourceRequest,
+                    idPassportNouveau: newPassportResponse ? newPassportResponse.idPassport : null,
+                    piecesCible: getUploadedPieces()
+                },
+                files: getUploadedFiles()
+            });
+        }
+
+        throw new Error("Le type de demande selectionne n'est pas compatible avec ce mode.");
+    }
+
+    async function submitEditNouveauTitre(editIdentifier) {
+        return buildMultipartPayload({
+            url: "/api/demandes/nouveau-titre/" + Number(editIdentifier),
+            body: {
+                ...buildRequestEnvelope(),
+                piecesJointes: getUploadedPieces()
+            },
+            files: getUploadedFiles(),
+            method: "PUT"
+        });
+    }
+
+    async function submitEditDuplicata(editIdentifier) {
+        return buildMultipartPayload({
+            url: "/api/demandes/duplicata/sans-donnees/" + Number(editIdentifier),
+            body: {
+                demandeNouveauTitre: {
+                    ...buildSourceRequestEnvelope(),
+                    piecesJointes: getUploadedPieces()
+                },
+                piecesCible: getUploadedPieces()
+            },
+            files: getUploadedFiles(),
+            method: "PUT"
+        });
+    }
+
+    async function submitEditTransfer(editIdentifier) {
+        const transferPassport = buildTransferPassportPayload();
+        if (!transferPassport.numeroNouveau) {
+            throw new Error("Veuillez renseigner le numero du nouveau passeport.");
+        }
+
+        const passportResponse = await createTransferPassport();
+
+        return buildMultipartPayload({
+            url: "/api/demandes/transfert/sans-donnees/" + Number(editIdentifier),
+            body: {
+                demandeNouveauTitre: {
+                    ...buildSourceRequestEnvelope(),
+                    piecesJointes: getUploadedPieces()
+                },
+                idPassportNouveau: passportResponse.idPassport,
+                piecesCible: getUploadedPieces()
+            },
+            files: getUploadedFiles(),
+            method: "PUT"
+        });
+    }
+
+    async function submitRequest() {
+        setStatusMessage("Envoi en cours...");
+
+        let response;
+        const requestSelection = readSection("requestSelection");
+
+        if (editMode) {
+            if (!requestSelection.idTypeDemande) {
+                throw new Error("Veuillez selectionner un type de demande.");
+            }
+
+            if (requestSelection.idTypeDemande === 1) {
+                response = await submitEditNouveauTitre(editId);
+            } else if (requestSelection.idTypeDemande === 2) {
+                response = await submitEditDuplicata(editId);
+            } else if (requestSelection.idTypeDemande === 3) {
+                response = await submitEditTransfer(editId);
+            } else {
+                throw new Error("Le type de demande selectionne n'est pas compatible avec la modification.");
+            }
+
+            window.location.href = confirmationUrl + "?" + new URLSearchParams({
+                id: String(response.id || ""),
+                statut: String(response.statut || ""),
+                date: String(response.dateDemande || "")
+            }).toString();
+            return;
+        }
+
+        await createDemandeur();
+        await createPassport();
+
+        if (isWithoutDataMode()) {
+            response = await submitWithoutData();
+        } else {
+            if (requestSelection.idTypeDemande !== 1) {
+                throw new Error("Veuillez activer 'sans donnees anterieures' pour ce type de demande.");
+            }
+            response = await submitNewWithData();
+        }
+
+        window.location.href = confirmationUrl + "?" + new URLSearchParams({
+            id: String(response.id || ""),
+            statut: String(response.statut || ""),
+            date: String(response.dateDemande || "")
+        }).toString();
+    }
+
+    async function postMultipart(url, body, files, method) {
         const formData = new FormData();
         formData.append("dto", new Blob([JSON.stringify(body)], { type: "application/json" }));
+
         (files || []).forEach((file) => {
             formData.append("files", file, file.name);
         });
 
         const response = await fetch(url, {
-            method: "POST",
+            method: method || "POST",
             body: formData
         });
 
@@ -594,9 +638,7 @@
     }
 
     async function getJson(url) {
-        const response = await fetch(url, {
-            method: "GET"
-        });
+        const response = await fetch(url, { method: "GET" });
 
         if (!response.ok) {
             throw await buildApiError(response);
@@ -625,7 +667,7 @@
         let text = "";
         try {
             text = await response.text();
-        } catch (e) {
+        } catch (error) {
             text = "";
         }
 
@@ -640,322 +682,155 @@
                 const message = data.message || data.error || ("Erreur API " + response.status);
                 return new Error(code + message);
             }
-        } catch (e) {
+        } catch (error) {
             // response body is not JSON
         }
 
         return new Error(text);
     }
 
-    async function submitFlow() {
-        setMessage("Envoi en cours...");
-
-        const piecesJointes = state.piecesSelection
-            .filter((p) => p.file)
-            .map((p) => ({ idPieceAFournir: p.idPieceAFournir }));
-        const fichiersPieces = state.piecesSelection
-            .filter((p) => p.file)
-            .map((p) => p.file);
-
-        const demandeur = {
-            nom: getValue("nom"),
-            prenom: getValue("prenom") || null,
-            dateNaissance: getValue("dateNaissance"),
-            nomJeuneFille: getValue("nomJeuneFille") || null,
-            adresseMada: getValue("adresseMada") || null,
-            telephone: getValue("telephone"),
-            email: getValue("email") || null,
-            idNationalite: toNumber("idNationalite"),
-            idStatutFamilial: toNumber("idStatutFamilial")
-        };
-
-        const demandeurResponse = await postJson("/api/demandeurs", demandeur);
-        state.idDemandeur = demandeurResponse.idDemandeur;
-
-        const passport = {
-            numero: getValue("numero"),
-            dateDelivrance: getValue("dateDelivrance") || null,
-            dateExpiration: getValue("dateExpiration") || null
-        };
-
-        const passportResponse = await postJson("/api/demandeurs/" + state.idDemandeur + "/passports", passport);
-        state.idPassport = passportResponse.idPassport;
-
-        const idTypeVisa = toNumber("idTypeVisa");
-        const idTypeDemande = toNumber("idTypeDemande");
-        const sansDonneesMode = isSansDonneesChecked();
-        if (!idTypeVisa) {
-            throw new Error("Veuillez selectionner un type de visa.");
-        }
-        const piecesCible = state.piecesSelection
-            .filter((p) => p.selected)
-            .map((p) => ({ idPieceAFournir: p.idPieceAFournir }));
-
-        let soumission;
-
-        if (sansDonneesMode) {
-            let idVisaTransformable = getSelectedVisaId();
-            let idPassportNouveau = null;
-            if (idTypeDemande === 3) {
-                const nouveauPassport = {
-                    numero: getValue("numeroNouveau"),
-                    dateDelivrance: getValue("dateDelivranceNouveau") || null,
-                    dateExpiration: getValue("dateExpirationNouveau") || null
-                };
-                if (!nouveauPassport.numero) {
-                    throw new Error("Veuillez renseigner le numero du nouveau passeport.");
-                }
-                const nouveauPassportResponse = await postJson(
-                    "/api/demandeurs/" + state.idDemandeur + "/passports",
-                    nouveauPassport
-                );
-                idPassportNouveau = nouveauPassportResponse.idPassport;
-            }
-            if (!idVisaTransformable) {
-                const visa = {
-                    referenceVisa: getValue("referenceVisa"),
-                    natureVisa: getValue("natureVisa") || null,
-                    dateEntreeMada: getValue("dateEntreeMada"),
-                    lieuEntreeMada: getValue("lieuEntreeMada") || null,
-                    dateSortie: getValue("dateSortie") || null
-                };
-                if (!visa.referenceVisa || !visa.dateEntreeMada) {
-                    throw new Error("Veuillez renseigner le visa transformable.");
-                }
-                const visaResponse = await postJson("/api/passports/" + state.idPassport + "/visas-transformables", visa);
-                idVisaTransformable = visaResponse.id;
-            }
-            const demandeNouveauTitre = {
-                idDemandeur: state.idDemandeur,
-                idPassport: state.idPassport,
-                idVisaTransformable: idVisaTransformable,
-                idTypeVisa: idTypeVisa,
-                idTypeDemande: 1,
-                piecesJointes: piecesJointes
-            };
-
-            if (idTypeDemande === 2) {
-                soumission = await postMultipart("/api/demandes/duplicata/sans-donnees", {
-                    demandeNouveauTitre: demandeNouveauTitre,
-                    piecesCible: piecesJointes
-                }, fichiersPieces);
-            } else if (idTypeDemande === 3) {
-                soumission = await postMultipart("/api/demandes/transfert/sans-donnees", {
-                    demandeNouveauTitre: demandeNouveauTitre,
-                    idPassportNouveau: idPassportNouveau,
-                    piecesCible: piecesJointes
-                }, fichiersPieces);
-            } else {
-                throw new Error("Le type de demande selectionne n'est pas compatible avec ce mode.");
-            }
-        } else {
-            if (idTypeDemande !== 1) {
-                throw new Error("Veuillez activer 'sans donnees anterieures' pour ce type de demande.");
-            }
-
-            const visa = {
-                referenceVisa: getValue("referenceVisa"),
-                natureVisa: getValue("natureVisa") || null,
-                dateEntreeMada: getValue("dateEntreeMada"),
-                lieuEntreeMada: getValue("lieuEntreeMada") || null,
-                dateSortie: getValue("dateSortie") || null
-            };
-
-            const visaResponse = await postJson("/api/passports/" + state.idPassport + "/visas-transformables", visa);
-            state.idVisaTransformable = visaResponse.id;
-
-            const demande = {
-                idDemandeur: state.idDemandeur,
-                idPassport: state.idPassport,
-                idVisaTransformable: state.idVisaTransformable,
-                idTypeVisa: idTypeVisa,
-                idTypeDemande: idTypeDemande,
-                piecesJointes: piecesJointes
-            };
-
-            soumission = await postMultipart("/api/demandes/nouveau-titre", demande, fichiersPieces);
-        }
-        const query = new URLSearchParams({
-            id: String(soumission.id || ""),
-            statut: String(soumission.statut || ""),
-            date: String(soumission.dateDemande || "")
-        });
-        clearAutosave();
-        window.location.href = confirmationUrl + "?" + query.toString();
-    }
-
-    async function goToStep(targetStep) {
-        const nextStep = Number(targetStep);
-        if (Number.isNaN(nextStep) || nextStep < 1 || nextStep > AUTOSAVE_STEP_MAX) {
+    async function goToStep(stepNumber) {
+        const targetStep = Number(stepNumber);
+        if (Number.isNaN(targetStep) || targetStep < 1 || targetStep > stepMax) {
             return;
         }
 
-        if (nextStep > currentStep) {
-            for (let step = currentStep; step < nextStep; step += 1) {
-                const error = validateStep(step);
+        if (targetStep > activeStep) {
+            for (let step = activeStep; step < targetStep; step += 1) {
+                const error = validateCurrentStep(step);
                 if (error) {
-                    setMessage(error);
+                    setStatusMessage(error);
                     return;
                 }
+
+                if (step === 1) {
+                    requestDraft.requestSelection = readSection("requestSelection");
+                }
+
                 if (step === 4) {
                     try {
-                        await buildPieces();
-                    } catch (e) {
-                        setMessage("Impossible de charger les pieces: " + (e.message || "erreur inconnue"));
+                        await loadPiecesCatalog();
+                    } catch (error) {
+                        setStatusMessage("Impossible de charger les pieces: " + (error.message || "erreur inconnue"));
                         return;
                     }
                 }
             }
         }
 
-        currentStep = nextStep;
-        setMessage("");
-        syncUi();
-        saveAutosave();
+        activeStep = targetStep;
+        setStatusMessage("");
+        syncWizardUi();
     }
 
-    btnPrev.addEventListener("click", () => {
-        setMessage("");
-        currentStep = Math.max(1, currentStep - 1);
-        syncUi();
-        saveAutosave();
+    previousStepButton.addEventListener("click", () => {
+        setStatusMessage("");
+        activeStep = Math.max(1, activeStep - 1);
+        syncWizardUi();
     });
 
-    btnNext.addEventListener("click", async () => {
-        const error = validateStep(currentStep);
+    nextStepButton.addEventListener("click", async () => {
+        const error = validateCurrentStep(activeStep);
         if (error) {
-            setMessage(error);
+            setStatusMessage(error);
             return;
         }
 
-        if (currentStep === 4) {
+        if (activeStep === 4) {
             try {
-                await buildPieces();
-            } catch (e) {
-                setMessage("Impossible de charger les pieces: " + (e.message || "erreur inconnue"));
+                await loadPiecesCatalog();
+            } catch (exception) {
+                setStatusMessage("Impossible de charger les pieces: " + (exception.message || "erreur inconnue"));
                 return;
             }
         }
 
-        setMessage("");
-        currentStep = Math.min(5, currentStep + 1);
-        syncUi();
-        saveAutosave();
+        setStatusMessage("");
+        activeStep = Math.min(stepMax, activeStep + 1);
+        syncWizardUi();
     });
 
-    btnSubmit.addEventListener("click", async () => {
-        const error = validateStep(5);
+    submitButton.addEventListener("click", async () => {
+        const error = validateCurrentStep(stepMax);
         if (error) {
-            setMessage(error);
+            setStatusMessage(error);
             return;
         }
 
         try {
-            btnSubmit.disabled = true;
-            await submitFlow();
-        } catch (e) {
-            setMessage("Echec de soumission: " + (e.message || "erreur inconnue"));
+            submitButton.disabled = true;
+            requestDraft.requestSelection = readSection("requestSelection");
+            await submitRequest();
+        } catch (exception) {
+            setStatusMessage("Echec de soumission: " + (exception.message || "erreur inconnue"));
         } finally {
-            btnSubmit.disabled = false;
+            submitButton.disabled = false;
         }
     });
 
-    steps.forEach((stepEl) => {
-        const stepValue = Number(stepEl.dataset.step);
-        if (Number.isNaN(stepValue)) {
+    stepItems.forEach((stepItem) => {
+        const stepNumber = Number(stepItem.dataset.step);
+        if (Number.isNaN(stepNumber)) {
             return;
         }
 
-        stepEl.addEventListener("click", async () => {
-            await goToStep(stepValue);
+        stepItem.addEventListener("click", async () => {
+            await goToStep(stepNumber);
         });
 
-        stepEl.addEventListener("keydown", async (event) => {
+        stepItem.addEventListener("keydown", async (event) => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                await goToStep(stepValue);
+                await goToStep(stepNumber);
             }
         });
     });
 
-    if (quickDemandeur) {
-        quickDemandeur.addEventListener("change", async () => {
-            const idDemandeur = quickDemandeur.value ? Number(quickDemandeur.value) : null;
-            const demandeur = state.quick.demandeurs.find((row) => row.idDemandeur === idDemandeur);
-            applyDemandeurToForm(demandeur || null);
-
-            quickPassport.value = "";
-            quickVisa.value = "";
-            await loadQuickPassports(idDemandeur);
-            await loadQuickVisas(null, null);
-            saveAutosave();
-        });
-    }
-
-    if (quickPassport) {
-        quickPassport.addEventListener("change", async () => {
-            const idPassport = quickPassport.value ? Number(quickPassport.value) : null;
-            const idDemandeur = quickDemandeur && quickDemandeur.value ? Number(quickDemandeur.value) : null;
-            const passport = state.quick.passports.find((row) => row.idPassport === idPassport);
-            applyPassportToForm(passport || null);
-
-            quickVisa.value = "";
-            await loadQuickVisas(idDemandeur, idPassport);
-            saveAutosave();
-        });
-    }
-
-    if (quickVisa) {
-        quickVisa.addEventListener("change", () => {
-            const idVisa = quickVisa.value ? Number(quickVisa.value) : null;
-            const visa = state.quick.visas.find((row) => row.id === idVisa);
-            applyVisaToForm(visa || null);
-            saveAutosave();
-        });
-    }
-
     form.addEventListener("input", () => {
-        saveAutosave();
     });
 
     form.addEventListener("change", () => {
-        saveAutosave();
     });
 
-    async function init() {
-        restoreAutosave();
-        syncUi();
+    const requestTypeSelect = getFieldElement("idTypeDemande");
+    if (requestTypeSelect) {
+        requestTypeSelect.addEventListener("change", () => {
+            requestDraft.requestSelection = readSection("requestSelection");
+            syncRequestTypeUi();
+            syncTitle();
+        });
+    }
+
+    if (sansDonneesCheckbox) {
+        sansDonneesCheckbox.addEventListener("change", () => {
+            syncRequestTypeUi();
+        });
+    }
+
+    async function initialize() {
+        syncWizardUi();
+
         try {
-            await loadReferences();
-            await loadQuickDemandeurs();
-            await restoreQuickSelections();
+            await loadReferenceData();
 
-            updateDemandeTypeUi();
-            updateDemandeTitle();
-
-            if (currentStep === 5) {
-                await buildPieces();
+            if (editMode) {
+                if (submitButton) {
+                    submitButton.textContent = "Mettre a jour";
+                }
+                await loadEditDetail();
             }
-        } catch (e) {
-            setMessage("Impossible de charger les donnees de reference: " + (e.message || "erreur inconnue"));
+
+            requestDraft.requestSelection = readSection("requestSelection");
+            syncRequestTypeUi();
+            syncTitle();
+
+            if (activeStep === 5) {
+                await loadPiecesCatalog();
+            }
+        } catch (error) {
+            setStatusMessage("Impossible de charger les donnees de reference: " + (error.message || "erreur inconnue"));
         }
     }
 
-    const typeDemandeSelect = form.querySelector("[name='idTypeDemande']");
-    if (typeDemandeSelect) {
-        typeDemandeSelect.addEventListener("change", () => {
-            updateDemandeTypeUi();
-            updateDemandeTitle();
-            saveAutosave();
-        });
-    }
-
-    if (sansDonnees) {
-        sansDonnees.addEventListener("change", () => {
-            updateDemandeTypeUi();
-            saveAutosave();
-        });
-    }
-
-    init();
+    initialize();
 })();

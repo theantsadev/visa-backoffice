@@ -8,4 +8,6 @@ import com.example.demo.model.PieceJointe;
 
 public interface PieceJointeRepository extends JpaRepository<PieceJointe, Integer> {
 	List<PieceJointe> findByIdDemande(Integer idDemande);
+
+	void deleteByIdDemande(Integer idDemande);
 }

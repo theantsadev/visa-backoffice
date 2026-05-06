@@ -8,7 +8,7 @@ Integrer les 2 autres types de demande dans l'application :
 ## Perimetre fonctionnel
 - CREATE/UPDATE demande de duplicata sans donnees anterieures
 - CREATE/UPDATE demande de transfert sans donnees anterieures
-- CREATE/UPDATE demande nouveau titre (deja fait dans sprint 1)
+- CREATE/UPDATE demande nouveau titre (create deja fait dans sprint 1)
 
 ## Regles de gestion
 - Si tous les champs/pieces obligatoires sont complets + les optionnels restants, alors statut_demande = dossier_cree ; dossier encore modifiable.
