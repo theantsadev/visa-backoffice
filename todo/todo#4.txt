@@ -1,3 +1,10 @@
  - une autre application (React JS)   qui fait entrer un numero de passeport et on affiche toutes les demandes relatives aux demandeurs
  si l'argument  = num_passeport alors on affiche les demandes par ordre chronologique mais si c'est id_demande alors on affiche en premier la demande et puis les autres demandes rattachées au demandeur de cette demande 
  - on génere un QR code rattaché à un demande et quand on scanne le QR : on accede à  l'url de suivi de la demande
+
+ Coté BO (ici) :
+  - Pour le QR , on cree une fonction genererQR(idDemande) et appelle cette fonction des la creation d'une demande
+  - je pense qu'on doit ajouter un api de suivi de demande : /api/demandes/suivi/{numeroId}
+  - si numeroId est un id_demande alors on appelle getDemandeurByIdDemande(idDemande) puis  getListeDemandeByIdDemandeur(idDemandeur) puis getHistoriqueStatutDemandeByIdDemande(idDemande)
+  - si numeroId est un id_passport alors pour demande_nouveau ca va car on a id_passport dedans mais pour duplicata (qui a seulement une demande source) et pour transfert (on prend id_passport_nouveau ou l'id_passport dans la demande_source)
+ 
