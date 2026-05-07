@@ -51,7 +51,7 @@
     <script>
         function genererQR(idDemande) {
             const foBaseUrl = "http://localhost:5173";
-            const trackingUrl = foBaseUrl + "/demande/suivi/" + encodeURIComponent(idDemande);
+            const trackingUrl = foBaseUrl + "/suivi/" + encodeURIComponent(idDemande);
             const qrImage = document.getElementById("demandeQr");
             const trackingLink = document.getElementById("trackingLink");
 
@@ -60,7 +60,7 @@
             }
 
             if (trackingLink) {
-                trackingLink.href = foBaseUrl + "/demande/suivi/" + encodeURIComponent(idDemande);
+                trackingLink.href = foBaseUrl + "/suivi/" + encodeURIComponent(idDemande);
             }
         }
 

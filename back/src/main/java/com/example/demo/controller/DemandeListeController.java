@@ -59,7 +59,7 @@ public class DemandeListeController {
             HttpServletRequest request) {
         String foBaseUrl = "http://localhost:5173";
         int qrSize = Math.min(Math.max(size, 160), 600);
-        String trackingUrl = foBaseUrl + "/demande/suivi/" + numeroId;
+        String trackingUrl = foBaseUrl + "/suivi/" + numeroId;
 
         Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
         hints.put(EncodeHintType.MARGIN, 1);
