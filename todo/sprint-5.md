@@ -29,11 +29,11 @@ dossier cree (modifiable,obligatoire complet)
 
 ### Lot 1 - Cadrer le modele metier et la base
 
-- [ ] Ajouter la table `photo_signature` dans le script SQL de reference, avec les colonnes minimum `id`, `lien_photo`, `lien_signature`, et la cle de rattachement vers la demande ou le demandeur selon le choix d'architecture. Reprendre la logique de migration deja presente dans `back/sql/schema-19-04-2026.sql` et `back/sql/alter-06-05-2026.sql`.
-- [ ] Ajouter le statut **"photo terminee"** dans les donnees de reference des statuts, en conservant l'ordre metier des statuts deja utilises par `DemandeEffectueeService`.
-- [ ] Verifier et ajuster les constantes de statut dans `back/src/main/java/com/example/demo/metier/DemandeEffectueeService.java` pour introduire la nouvelle etape sans casser les transitions existantes `dossier cree`, `scan termine`, `visa accorde`.
-- [ ] Definir la regle de non-blocage: une demande au statut `photo terminee` reste modifiable, contrairement a `scan termine` et `visa accorde`.
-- [ ] Ajouter au besoin le repository ou l'entite manquante pour persister `photo_signature`, en suivant le style des entites et repositories deja en place dans `back/src/main/java/com/example/demo/model` et `back/src/main/java/com/example/demo/repository`.
+- [x] Ajouter la table `photo_signature` dans le script SQL de reference, avec les colonnes minimum `id`, `lien_photo`, `lien_signature`, et la cle de rattachement vers la demande ou le demandeur selon le choix d'architecture. Reprendre la logique de migration deja presente dans `back/sql/schema-19-04-2026.sql` et `back/sql/alter-06-05-2026.sql`.
+- [x] Ajouter le statut **"photo terminee"** dans les donnees de reference des statuts, en conservant l'ordre metier des statuts deja utilises par `DemandeEffectueeService`.
+- [x] Verifier et ajuster les constantes de statut dans `back/src/main/java/com/example/demo/metier/DemandeEffectueeService.java` pour introduire la nouvelle etape sans casser les transitions existantes `dossier cree`, `scan termine`, `visa accorde`.
+- [x] Definir la regle de non-blocage: une demande au statut `photo terminee` reste modifiable, contrairement a `scan termine` et `visa accorde`.
+- [x] Ajouter au besoin le repository ou l'entite manquante pour persister `photo_signature`, en suivant le style des entites et repositories deja en place dans `back/src/main/java/com/example/demo/model` et `back/src/main/java/com/example/demo/repository`.
 
 ### Lot 2 - Couvrir les regles de transition
 
