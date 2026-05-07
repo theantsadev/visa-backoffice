@@ -1,0 +1,22 @@
+Fonctionnalités : 
+- prise de photo par webcam
+- signature via trackpad
+
+Nouveauté : 
+- un nouveau statut : "photo terminee" , les dossiers sont encores modifiables
+
+Contraintes : 
+dossier cree (obli complet,dossier modifiable) => photo terminee (photo + signature completes,dossier modifiable) => scan termine (tout type,non modifiable)  => visa accorde (validé par admin,non modifiable)
+
+
+Bdd : 
+- ajout d'une table photo_signature (id,lien_photo TEXT ,lien_signature TEXT ou je sais pas  )  rattachée à la table demande ou demandeur 
+
+Affichage : 
+- ajout d'une nouvelle etape (6 eme etape) dans la page demande-nouveau.html et le demande-app.js ou bien vaut mieux créer une nouvelle page  apres les pieces jointes "Prise de photo et signature" ;
+- js : utilisation d'une fonction getPhoto() et getSignature()
+
+Metier : 
+- ajout d'une fonction uploadPhoto similaire à uploadPieceJointe deja existante
+- ajout d'une fonction enregistrerPhotoSignature(id_demande,lien_photo,lien_signature)
+ 
