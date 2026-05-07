@@ -15,6 +15,9 @@ public class Demande {
     @Column(name = "id_demande")
     private Integer id;
 
+    @Column(name = "numero", unique = true, nullable = false)
+    private String numero;
+
     @Column(name = "date_demande")
     private LocalDateTime dateDemande;
 

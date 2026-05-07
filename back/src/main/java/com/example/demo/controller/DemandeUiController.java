@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @Controller
 public class DemandeUiController {
@@ -29,6 +30,13 @@ public class DemandeUiController {
     public String listeDemandes(Model model) {
         prepareViewModel(model);
         return "demande-liste";
+    }
+
+    @GetMapping({ "/demande/suivi/{numero}", "/demande-suivi.html" })
+    public String suiviDemande(@PathVariable(required = false) String numero, Model model) {
+        prepareViewModel(model);
+        model.addAttribute("numero", numero);
+        return "demande-suivi";
     }
 
     private void prepareViewModel(Model model) {

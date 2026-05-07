@@ -1,14 +1,18 @@
 <!doctype html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmation Demande</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/css/demande.css" th:href="@{/css/demande.css(v=${cacheBuster})}">
 </head>
+
 <body>
     <main class="page-shell">
         <section class="hero-card confirmation-card">
@@ -28,8 +32,16 @@
                     <strong id="demandeDate">-</strong>
                 </div>
             </div>
+            <div class="qr-panel">
+                <div>
+                    <span class="qr-label">QR de suivi</span>
+                    <p class="subtitle">Scannez ce QR pour ouvrir la page de suivi de la demande.</p>
+                </div>
+                <img id="demandeQr" alt="QR code de suivi" class="qr-image">
+            </div>
             <div class="cta-row" style="justify-content:center;">
                 <a href="/" class="btn btn-outline" th:href="@{/}">Retour a la page d'accueil</a>
+                <a id="trackingLink" href="#" class="btn btn-ghost">Ouvrir le suivi</a>
                 <a href="/demande/liste" class="btn btn-ghost" th:href="@{/demande/liste}">Consulter les demandes</a>
                 <a href="/demande/nouveau" class="btn btn-primary" th:href="@{/demande/nouveau}">Nouvelle demande</a>
             </div>
@@ -37,10 +49,30 @@
     </main>
 
     <script>
+        function genererQR(idDemande) {
+            const foBaseUrl = "http://localhost:5173";
+            const trackingUrl = foBaseUrl + "/suivi/" + encodeURIComponent(idDemande);
+            const qrImage = document.getElementById("demandeQr");
+            const trackingLink = document.getElementById("trackingLink");
+
+            if (qrImage) {
+                qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(trackingUrl);
+            }
+
+            if (trackingLink) {
+                trackingLink.href = foBaseUrl + "/suivi/" + encodeURIComponent(idDemande);
+            }
+        }
+
         const params = new URLSearchParams(window.location.search);
-        document.getElementById("demandeId").textContent = params.get("id") || "-";
+        const numeroDemande = params.get("numero") || params.get("id") || "-";
+        document.getElementById("demandeId").textContent = numeroDemande;
         document.getElementById("demandeStatut").textContent = params.get("statut") || "-";
         document.getElementById("demandeDate").textContent = params.get("date") || "-";
+        if (numeroDemande !== "-") {
+            genererQR(numeroDemande);
+        }
     </script>
 </body>
+
 </html>

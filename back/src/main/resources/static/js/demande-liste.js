@@ -193,6 +193,41 @@
         return section;
     }
 
+    function buildTrackingUrl(numeroId) {
+        return "/demande/suivi/" + encodeURIComponent(numeroId);
+    }
+
+    function buildQrUrl(numeroId) {
+        return "/api/demandes/" + encodeURIComponent(numeroId) + "/qr?size=220";
+    }
+
+    function createQrPanel(numeroId) {
+        const panel = document.createElement("div");
+        panel.className = "qr-panel";
+
+        const copy = document.createElement("div");
+        const label = document.createElement("span");
+        label.className = "qr-label";
+        label.textContent = "QR de suivi";
+
+        const subtitle = document.createElement("p");
+        subtitle.className = "subtitle";
+        subtitle.textContent = "Scannez ce QR pour ouvrir la page de suivi de la demande.";
+
+        copy.appendChild(label);
+        copy.appendChild(subtitle);
+
+        const image = document.createElement("img");
+        image.className = "qr-image";
+        image.alt = "QR code de suivi";
+        image.loading = "lazy";
+        image.src = buildQrUrl(numeroId);
+
+        panel.appendChild(copy);
+        panel.appendChild(image);
+        return panel;
+    }
+
     function renderDetail(detail) {
         detailPlaceholder.hidden = true;
         detailContent.hidden = false;
@@ -202,11 +237,17 @@
 
         detailContent.appendChild(createDetailSection("Demande", [
             { label: "ID", value: detail.id },
+            { label: "Numero", value: detail.numero },
             { label: "Statut", value: detail.statut },
             { label: "Type visa", value: detail.typeVisa },
             { label: "Type demande", value: detail.typeDemande },
             { label: "Date demande", value: formatDateTime(detail.dateDemande) }
         ]));
+
+        const trackingId = detail.numero || detail.id;
+        if (trackingId != null && String(trackingId).trim() !== "") {
+            detailContent.appendChild(createQrPanel(trackingId));
+        }
 
         detailContent.appendChild(createDetailSection("Demandeur", [
             { label: "ID demandeur", value: detail.demandeur && detail.demandeur.idDemandeur },
@@ -239,6 +280,12 @@
         if (isEditable || !isFinal) {
             const actions = document.createElement("div");
             actions.className = "cta-row";
+
+            const trackingLink = document.createElement("a");
+            trackingLink.className = "btn btn-ghost";
+            trackingLink.href = buildTrackingUrl(detail.numero || detail.id);
+            trackingLink.textContent = "Suivi de la demande";
+            actions.appendChild(trackingLink);
 
             if (isEditable) {
                 const editLink = document.createElement("a");
@@ -300,17 +347,17 @@
 
                 const state = document.createElement("span");
                 state.className = "piece-state is-ok";
-                    if (piece.lien) {
-                        const link = document.createElement("a");
-                        link.className = "piece-link";
-                        link.href = piece.lien;
-                        link.target = "_blank";
-                        link.rel = "noopener noreferrer";
-                        link.textContent = "Ouvrir le fichier";
-                        state.appendChild(link);
-                    } else {
-                        state.textContent = "Piece jointe";
-                    }
+                if (piece.lien) {
+                    const link = document.createElement("a");
+                    link.className = "piece-link";
+                    link.href = piece.lien;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = "Ouvrir le fichier";
+                    state.appendChild(link);
+                } else {
+                    state.textContent = "Piece jointe";
+                }
 
                 item.appendChild(left);
                 item.appendChild(state);
