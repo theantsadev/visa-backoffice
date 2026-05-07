@@ -1,14 +1,18 @@
 <!doctype html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmation Demande</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/css/demande.css" th:href="@{/css/demande.css(v=${cacheBuster})}">
 </head>
+
 <body>
     <main class="page-shell">
         <section class="hero-card confirmation-card">
@@ -46,7 +50,8 @@
 
     <script>
         function genererQR(idDemande) {
-            const trackingUrl = window.location.origin + "/demande/suivi/" + encodeURIComponent(idDemande);
+            const foBaseUrl = "http://localhost:5173";
+            const trackingUrl = foBaseUrl + "/demande/suivi/" + encodeURIComponent(idDemande);
             const qrImage = document.getElementById("demandeQr");
             const trackingLink = document.getElementById("trackingLink");
 
@@ -55,7 +60,7 @@
             }
 
             if (trackingLink) {
-                trackingLink.href = "/demande/suivi/" + encodeURIComponent(idDemande);
+                trackingLink.href = foBaseUrl + "/demande/suivi/" + encodeURIComponent(idDemande);
             }
         }
 
@@ -69,4 +74,5 @@
         }
     </script>
 </body>
+
 </html>

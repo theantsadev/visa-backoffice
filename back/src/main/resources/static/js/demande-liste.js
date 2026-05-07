@@ -197,6 +197,37 @@
         return "/demande/suivi/" + encodeURIComponent(numeroId);
     }
 
+    function buildQrUrl(numeroId) {
+        return "/api/demandes/" + encodeURIComponent(numeroId) + "/qr?size=220";
+    }
+
+    function createQrPanel(numeroId) {
+        const panel = document.createElement("div");
+        panel.className = "qr-panel";
+
+        const copy = document.createElement("div");
+        const label = document.createElement("span");
+        label.className = "qr-label";
+        label.textContent = "QR de suivi";
+
+        const subtitle = document.createElement("p");
+        subtitle.className = "subtitle";
+        subtitle.textContent = "Scannez ce QR pour ouvrir la page de suivi de la demande.";
+
+        copy.appendChild(label);
+        copy.appendChild(subtitle);
+
+        const image = document.createElement("img");
+        image.className = "qr-image";
+        image.alt = "QR code de suivi";
+        image.loading = "lazy";
+        image.src = buildQrUrl(numeroId);
+
+        panel.appendChild(copy);
+        panel.appendChild(image);
+        return panel;
+    }
+
     function renderDetail(detail) {
         detailPlaceholder.hidden = true;
         detailContent.hidden = false;
@@ -212,6 +243,11 @@
             { label: "Type demande", value: detail.typeDemande },
             { label: "Date demande", value: formatDateTime(detail.dateDemande) }
         ]));
+
+        const trackingId = detail.numero || detail.id;
+        if (trackingId != null && String(trackingId).trim() !== "") {
+            detailContent.appendChild(createQrPanel(trackingId));
+        }
 
         detailContent.appendChild(createDetailSection("Demandeur", [
             { label: "ID demandeur", value: detail.demandeur && detail.demandeur.idDemandeur },
