@@ -9,7 +9,7 @@ Ajouter la prise de photo par webcam et la signature par trackpad, avec un nouve
 
 ## Flux cible
 ```
-dossier cree (modifiable, complet)
+dossier cree (modifiable,obligatoire complet)
     -> photo terminee (photo + signature completes, modifiable)
     -> scan termine (tout type, non modifiable)
     -> visa accorde (valide par admin, non modifiable)

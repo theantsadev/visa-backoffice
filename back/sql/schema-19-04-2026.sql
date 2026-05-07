@@ -170,6 +170,16 @@ CREATE TABLE
    );
 
 CREATE TABLE
+   photo_signature (
+      id_photo_signature SERIAL,
+      lien_photo TEXT,
+      lien_signature TEXT,
+      id_demande INTEGER NOT NULL,
+      PRIMARY KEY (id_photo_signature),
+      FOREIGN KEY (id_demande) REFERENCES demande (id_demande)
+   );
+
+CREATE TABLE
    historique_statut_demande (
       id_demande INTEGER,
       statut_demande INTEGER,
