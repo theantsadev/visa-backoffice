@@ -193,6 +193,10 @@
         return section;
     }
 
+    function buildTrackingUrl(numeroId) {
+        return "/demande/suivi/" + encodeURIComponent(numeroId);
+    }
+
     function renderDetail(detail) {
         detailPlaceholder.hidden = true;
         detailContent.hidden = false;
@@ -202,6 +206,7 @@
 
         detailContent.appendChild(createDetailSection("Demande", [
             { label: "ID", value: detail.id },
+            { label: "Numero", value: detail.numero },
             { label: "Statut", value: detail.statut },
             { label: "Type visa", value: detail.typeVisa },
             { label: "Type demande", value: detail.typeDemande },
@@ -239,6 +244,12 @@
         if (isEditable || !isFinal) {
             const actions = document.createElement("div");
             actions.className = "cta-row";
+
+            const trackingLink = document.createElement("a");
+            trackingLink.className = "btn btn-ghost";
+            trackingLink.href = buildTrackingUrl(detail.numero || detail.id);
+            trackingLink.textContent = "Suivi de la demande";
+            actions.appendChild(trackingLink);
 
             if (isEditable) {
                 const editLink = document.createElement("a");
@@ -300,17 +311,17 @@
 
                 const state = document.createElement("span");
                 state.className = "piece-state is-ok";
-                    if (piece.lien) {
-                        const link = document.createElement("a");
-                        link.className = "piece-link";
-                        link.href = piece.lien;
-                        link.target = "_blank";
-                        link.rel = "noopener noreferrer";
-                        link.textContent = "Ouvrir le fichier";
-                        state.appendChild(link);
-                    } else {
-                        state.textContent = "Piece jointe";
-                    }
+                if (piece.lien) {
+                    const link = document.createElement("a");
+                    link.className = "piece-link";
+                    link.href = piece.lien;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = "Ouvrir le fichier";
+                    state.appendChild(link);
+                } else {
+                    state.textContent = "Piece jointe";
+                }
 
                 item.appendChild(left);
                 item.appendChild(state);

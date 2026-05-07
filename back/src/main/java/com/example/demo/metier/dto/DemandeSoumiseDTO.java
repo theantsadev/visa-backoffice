@@ -9,6 +9,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class DemandeSoumiseDTO {
     private Integer id;
+    private String numero;
     private String statut;
     private LocalDateTime dateDemande;
 }

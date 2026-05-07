@@ -1,0 +1,1 @@
+ALTER TABLE Demande ADD COLUMN numero TEXT UNIQUE;

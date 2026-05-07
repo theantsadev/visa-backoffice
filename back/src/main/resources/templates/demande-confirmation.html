@@ -28,8 +28,16 @@
                     <strong id="demandeDate">-</strong>
                 </div>
             </div>
+            <div class="qr-panel">
+                <div>
+                    <span class="qr-label">QR de suivi</span>
+                    <p class="subtitle">Scannez ce QR pour ouvrir la page de suivi de la demande.</p>
+                </div>
+                <img id="demandeQr" alt="QR code de suivi" class="qr-image">
+            </div>
             <div class="cta-row" style="justify-content:center;">
                 <a href="/" class="btn btn-outline" th:href="@{/}">Retour a la page d'accueil</a>
+                <a id="trackingLink" href="#" class="btn btn-ghost">Ouvrir le suivi</a>
                 <a href="/demande/liste" class="btn btn-ghost" th:href="@{/demande/liste}">Consulter les demandes</a>
                 <a href="/demande/nouveau" class="btn btn-primary" th:href="@{/demande/nouveau}">Nouvelle demande</a>
             </div>
@@ -37,10 +45,28 @@
     </main>
 
     <script>
+        function genererQR(idDemande) {
+            const trackingUrl = window.location.origin + "/demande/suivi/" + encodeURIComponent(idDemande);
+            const qrImage = document.getElementById("demandeQr");
+            const trackingLink = document.getElementById("trackingLink");
+
+            if (qrImage) {
+                qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(trackingUrl);
+            }
+
+            if (trackingLink) {
+                trackingLink.href = "/demande/suivi/" + encodeURIComponent(idDemande);
+            }
+        }
+
         const params = new URLSearchParams(window.location.search);
-        document.getElementById("demandeId").textContent = params.get("id") || "-";
+        const numeroDemande = params.get("numero") || params.get("id") || "-";
+        document.getElementById("demandeId").textContent = numeroDemande;
         document.getElementById("demandeStatut").textContent = params.get("statut") || "-";
         document.getElementById("demandeDate").textContent = params.get("date") || "-";
+        if (numeroDemande !== "-") {
+            genererQR(numeroDemande);
+        }
     </script>
 </body>
 </html>

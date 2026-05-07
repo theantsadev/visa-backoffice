@@ -299,6 +299,37 @@ select:focus {
     color: var(--muted);
 }
 
+.qr-panel {
+    margin: 18px auto 8px;
+    width: min(520px, 100%);
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #fff, #fffaf3);
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+}
+
+.qr-label {
+    display: inline-block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.qr-image {
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #fff;
+    object-fit: contain;
+}
+
 .cta-row {
     margin-top: 14px;
     display: flex;
@@ -490,6 +521,35 @@ select:focus {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+}
+
+.suivi-row {
+    align-items: flex-start;
+}
+
+.suivi-row .btn {
+    align-self: flex-start;
+}
+
+.suivi-left {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+}
+
+.suivi-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.suivi-field {
+    border: 1px solid #efe5d3;
+    border-radius: 8px;
+    padding: 7px 9px;
+    background: #fffaf3;
+    display: grid;
+    gap: 4px;
 }
 
 .piece-detail-row div {

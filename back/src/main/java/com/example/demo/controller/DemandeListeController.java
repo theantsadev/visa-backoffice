@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.metier.DemandeListeService;
 import com.example.demo.metier.dto.DemandeDetailDTO;
 import com.example.demo.metier.dto.DemandeListeItemDTO;
+import com.example.demo.metier.dto.DemandeSuiviDTO;
 
 @RestController
 @RequestMapping("/api/demandes")
@@ -29,5 +30,10 @@ public class DemandeListeController {
     @GetMapping("/{id}")
     public DemandeDetailDTO getDetailDemande(@PathVariable("id") Integer idDemande) {
         return demandeListeService.getDetailDemande(idDemande);
+    }
+
+    @GetMapping("/suivi/{numeroId}")
+    public List<DemandeSuiviDTO> suivreDemande(@PathVariable String numeroId) {
+        return demandeListeService.suivreDemande(numeroId);
     }
 }

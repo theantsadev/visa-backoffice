@@ -28,12 +28,16 @@
             lien: { type: "string", required: false }
         }),
         demande: Object.freeze({
+            numero: { type: "string", required: true },
             idDemandeur: { type: "number", required: true },
             idPassport: { type: "number", required: true },
             idVisaTransformable: { type: "number", required: false },
             idTypeVisa: { type: "number", required: true },
             idTypeDemande: { type: "number", required: true },
-            piecesJointes: { type: "PieceJointeDTO[]", required: false }
+            piecesJointes: { type: "PieceJointeDTO[]", required: false },
+            demandeur: { type: "DemandeurDTO", required: false },
+            passport: { type: "PassportDTO", required: false },
+            visaTransformable: { type: "VisaTransformableDTO", required: false }
         }),
         demandeDuplicataSansDonnees: Object.freeze({
             demandeNouveauTitre: { type: "DemandeDTO", required: true },
@@ -70,7 +74,8 @@
     const formModels = Object.freeze({
         requestSelection: Object.freeze({
             idTypeDemande: { type: "number", required: true, label: "Type de demande" },
-            idTypeVisa: { type: "number", required: true, label: "Type de visa" }
+            idTypeVisa: { type: "number", required: true, label: "Type de visa" },
+            numeroDemande: { type: "string", required: true, label: "Numero demande" }
         }),
         demandeurForm: Object.freeze({
             nom: { type: "string", required: true, label: "Nom" },

@@ -19,6 +19,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.metier.dto.DemandeDTO;
+import com.example.demo.metier.dto.DemandeurDTO;
+import com.example.demo.metier.dto.PassportDTO;
+import com.example.demo.metier.dto.VisaTransformableDTO;
 import com.example.demo.metier.dto.DemandeSoumiseDTO;
 import com.example.demo.model.Demande;
 import com.example.demo.model.DemandeDuplicataCarteResident;
@@ -26,9 +29,11 @@ import com.example.demo.model.DemandeNouveauTitre;
 import com.example.demo.model.DemandeTransfertVisa;
 import com.example.demo.model.Demandeur;
 import com.example.demo.model.HistoriqueStatutDemande;
+import com.example.demo.model.Nationnalite;
 import com.example.demo.model.Passport;
 import com.example.demo.model.PieceAFournir;
 import com.example.demo.model.PieceJointe;
+import com.example.demo.model.SituationFamiliale;
 import com.example.demo.model.StatutDemande;
 import com.example.demo.model.TypeDemande;
 import com.example.demo.model.TypeVisa;
@@ -39,9 +44,11 @@ import com.example.demo.repository.DemandeTransfertVisaRepository;
 import com.example.demo.repository.DemandeRepository;
 import com.example.demo.repository.DemandeurRepository;
 import com.example.demo.repository.HistoriqueStatutDemandeRepository;
+import com.example.demo.repository.NationnaliteRepository;
 import com.example.demo.repository.PassportRepository;
 import com.example.demo.repository.PieceAFournirRepository;
 import com.example.demo.repository.PieceJointeRepository;
+import com.example.demo.repository.SituationFamilialeRepository;
 import com.example.demo.repository.StatutDemandeRepository;
 import com.example.demo.repository.TypeDemandeRepository;
 import com.example.demo.repository.TypeVisaRepository;
@@ -70,6 +77,8 @@ public class DemandeEffectueeService {
     private final HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
     private final PieceAFournirRepository pieceAFournirRepository;
     private final PieceJointeRepository pieceJointeRepository;
+    private final NationnaliteRepository nationnaliteRepository;
+    private final SituationFamilialeRepository situationFamilialeRepository;
     private final Path uploadRoot;
 
     public DemandeEffectueeService(
@@ -86,6 +95,8 @@ public class DemandeEffectueeService {
             HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository,
             PieceAFournirRepository pieceAFournirRepository,
             PieceJointeRepository pieceJointeRepository,
+            NationnaliteRepository nationnaliteRepository,
+            SituationFamilialeRepository situationFamilialeRepository,
             @Value("${app.upload-dir:uploads/pieces-jointes}") String uploadDir) {
         this.demandeurRepository = demandeurRepository;
         this.passportRepository = passportRepository;
@@ -100,6 +111,8 @@ public class DemandeEffectueeService {
         this.historiqueStatutDemandeRepository = historiqueStatutDemandeRepository;
         this.pieceAFournirRepository = pieceAFournirRepository;
         this.pieceJointeRepository = pieceJointeRepository;
+        this.nationnaliteRepository = nationnaliteRepository;
+        this.situationFamilialeRepository = situationFamilialeRepository;
         this.uploadRoot = Path.of(uploadDir);
     }
 
@@ -108,6 +121,8 @@ public class DemandeEffectueeService {
         if (dto == null) {
             throw new IllegalArgumentException("La demande est obligatoire.");
         }
+        String numeroDemande = obtenirNumeroDemande(dto.getNumero());
+
         if (dto.getIdDemandeur() == null) {
             throw new IllegalArgumentException("L'id du demandeur est obligatoire.");
         }
@@ -122,7 +137,6 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("Le type de demande est obligatoire.");
         }
 
-        
 
         Demandeur demandeur = demandeurRepository.findById(dto.getIdDemandeur())
                 .orElseThrow(
@@ -166,6 +180,7 @@ public class DemandeEffectueeService {
                 typeVisa,
                 visaTransformable,
                 passport,
+            numeroDemande,
                 ID_TYPE_DEMANDE_NOUVEAU_TITRE,
                 ID_STATUT_DOSSIER_CREE);
 
@@ -174,7 +189,8 @@ public class DemandeEffectueeService {
 
         savePiecesJointes(dto.getPiecesJointes(), files, demandeCreee.getId());
 
-        return new DemandeSoumiseDTO(demandeCreee.getId(), statut.getLibelle(), demandeCreee.getDateDemande());
+        return new DemandeSoumiseDTO(demandeCreee.getId(), demandeCreee.getNumero(), statut.getLibelle(),
+            demandeCreee.getDateDemande());
     }
 
     @Transactional
@@ -185,12 +201,20 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("La demande est obligatoire.");
         }
 
+        if (!isBlank(dto.getNumero()) && !dto.getNumero().trim().equals(demande.getNumero())) {
+            throw new IllegalArgumentException("Le numero de la demande ne peut pas etre modifie.");
+        }
+
         Demandeur demandeur = chargerDemandeur(dto.getIdDemandeur());
         Passport passport = chargerPassport(dto.getIdPassport(), dto.getIdDemandeur());
         VisaTransformable visaTransformable = chargerVisaTransformable(dto.getIdVisaTransformable(),
                 dto.getIdDemandeur(),
                 dto.getIdPassport());
         TypeVisa typeVisa = chargerTypeVisa(dto.getIdTypeVisa());
+
+        demandeur = mettreAJourDemandeur(demandeur, dto.getDemandeur());
+        passport = mettreAJourPassport(passport, dto.getPassport());
+        visaTransformable = mettreAJourVisaTransformable(visaTransformable, dto.getVisaTransformable());
 
         demande.setDemandeur(demandeur);
         demandeRepository.save(demande);
@@ -208,7 +232,7 @@ public class DemandeEffectueeService {
         remplacerPiecesJointes(demande.getId(), dto.getPiecesJointes(), files);
         StatutDemande statut = determinerStatut(demande, dto.getPiecesJointes());
         enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
-        return new DemandeSoumiseDTO(demande.getId(), statut.getLibelle(), demande.getDateDemande());
+        return new DemandeSoumiseDTO(demande.getId(), demande.getNumero(), statut.getLibelle(), demande.getDateDemande());
     }
 
     @Transactional
@@ -235,7 +259,8 @@ public class DemandeEffectueeService {
         StatutDemande statut = determinerStatut(demandeCible, piecesCible);
         enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
-        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+        return new DemandeSoumiseDTO(demandeCible.getId(), demandeCible.getNumero(), statut.getLibelle(),
+            demandeCible.getDateDemande());
     }
 
     public Demande getDemandeById(Integer id) {
@@ -270,7 +295,8 @@ public class DemandeEffectueeService {
         StatutDemande statut = determinerStatut(demandeCible, piecesCible);
         enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
-        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+        return new DemandeSoumiseDTO(demandeCible.getId(), demandeCible.getNumero(), statut.getLibelle(),
+            demandeCible.getDateDemande());
     }
 
     @Transactional
@@ -451,6 +477,8 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("Le type de visa est obligatoire.");
         }
 
+        String numeroDemande = obtenirNumeroDemande(dto.getNumero());
+
         Demandeur demandeur = demandeurRepository.findById(dto.getIdDemandeur())
                 .orElseThrow(
                         () -> new IllegalArgumentException("Demandeur introuvable pour id=" + dto.getIdDemandeur()));
@@ -481,7 +509,7 @@ public class DemandeEffectueeService {
                 .orElseThrow(
                         () -> new IllegalArgumentException("Type de visa introuvable pour id=" + dto.getIdTypeVisa()));
 
-        return creerDemandeEtNouveauTitre(demandeur, typeVisa, visaTransformable, passport,
+        return creerDemandeEtNouveauTitre(demandeur, typeVisa, visaTransformable, passport, numeroDemande,
                 ID_TYPE_DEMANDE_NOUVEAU_TITRE,
                 ID_STATUT_VISA_ACCORDE);
     }
@@ -490,6 +518,7 @@ public class DemandeEffectueeService {
             TypeVisa typeVisa,
             VisaTransformable visaTransformable,
             Passport passport,
+            String numeroDemande,
             Integer idTypeDemande,
             Integer idStatut) {
         TypeDemande typeDemande = typeDemandeRepository.findById(idTypeDemande)
@@ -497,6 +526,7 @@ public class DemandeEffectueeService {
                         "Type de demande introuvable pour id=" + idTypeDemande));
 
         Demande demande = new Demande();
+        demande.setNumero(numeroDemande);
         demande.setDateDemande(LocalDateTime.now());
         demande.setDemandeur(demandeur);
         demande.setTypeDemande(typeDemande);
@@ -528,6 +558,7 @@ public class DemandeEffectueeService {
                         "Type de demande introuvable pour id=" + idTypeDemande));
 
         Demande demande = new Demande();
+        demande.setNumero(genererNumeroDemande());
         demande.setDateDemande(LocalDateTime.now());
         demande.setDemandeur(demandeur);
         demande.setTypeDemande(typeDemande);
@@ -689,12 +720,20 @@ public class DemandeEffectueeService {
             throw new IllegalArgumentException("La demande source est introuvable.");
         }
 
+        if (!isBlank(dto.getNumero()) && !dto.getNumero().trim().equals(demandeSource.getNumero())) {
+            throw new IllegalArgumentException("Le numero de la demande source ne peut pas etre modifie.");
+        }
+
         Demandeur demandeur = chargerDemandeur(dto.getIdDemandeur());
         Passport passport = chargerPassport(dto.getIdPassport(), dto.getIdDemandeur());
         VisaTransformable visaTransformable = chargerVisaTransformable(dto.getIdVisaTransformable(),
-                dto.getIdDemandeur(),
-                dto.getIdPassport());
+            dto.getIdDemandeur(),
+            dto.getIdPassport());
         TypeVisa typeVisa = chargerTypeVisa(dto.getIdTypeVisa());
+
+        demandeur = mettreAJourDemandeur(demandeur, dto.getDemandeur());
+        passport = mettreAJourPassport(passport, dto.getPassport());
+        visaTransformable = mettreAJourVisaTransformable(visaTransformable, dto.getVisaTransformable());
 
         demandeSource.setDemandeur(demandeur);
         demandeSource.setTypeDemande(typeDemandeRepository.findById(ID_TYPE_DEMANDE_NOUVEAU_TITRE)
@@ -746,6 +785,105 @@ public class DemandeEffectueeService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Demandeur mettreAJourDemandeur(Demandeur demandeur, DemandeurDTO dto) {
+        if (dto == null) {
+            return demandeur;
+        }
+
+        if (isBlank(dto.getNom())) {
+            throw new IllegalArgumentException("Le nom est obligatoire.");
+        }
+        if (dto.getDateNaissance() == null) {
+            throw new IllegalArgumentException("La date de naissance est obligatoire.");
+        }
+        if (isBlank(dto.getTelephone())) {
+            throw new IllegalArgumentException("Le telephone est obligatoire.");
+        }
+        if (dto.getIdNationalite() == null) {
+            throw new IllegalArgumentException("La nationalite est obligatoire.");
+        }
+        if (dto.getIdStatutFamilial() == null) {
+            throw new IllegalArgumentException("La situation familiale est obligatoire.");
+        }
+
+        Nationnalite nationnalite = nationnaliteRepository.findById(dto.getIdNationalite())
+                .orElseThrow(() -> new IllegalArgumentException("Nationalite introuvable pour id=" + dto.getIdNationalite()));
+
+        SituationFamiliale situationFamiliale = situationFamilialeRepository.findById(dto.getIdStatutFamilial())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Situation familiale introuvable pour id=" + dto.getIdStatutFamilial()));
+
+        demandeur.setNom(dto.getNom().trim());
+        demandeur.setPrenom(dto.getPrenom());
+        demandeur.setDateNaissance(dto.getDateNaissance());
+        demandeur.setNomJeuneFille(dto.getNomJeuneFille());
+        demandeur.setAdresseMada(dto.getAdresseMada());
+        demandeur.setTelephone(dto.getTelephone().trim());
+        demandeur.setEmail(dto.getEmail());
+        demandeur.setNationnalite(nationnalite);
+        demandeur.setSituationFamiliale(situationFamiliale);
+
+        return demandeurRepository.save(demandeur);
+    }
+
+    private Passport mettreAJourPassport(Passport passport, PassportDTO dto) {
+        if (dto == null) {
+            return passport;
+        }
+
+        if (isBlank(dto.getNumero())) {
+            throw new IllegalArgumentException("Le numero de passeport est obligatoire.");
+        }
+        if (dto.getDateDelivrance() != null && dto.getDateExpiration() != null
+                && !dto.getDateExpiration().isAfter(dto.getDateDelivrance())) {
+            throw new IllegalArgumentException("La date d'expiration doit etre apres la date de delivrance.");
+        }
+
+        passport.setNumero(dto.getNumero().trim());
+        passport.setDateDelivrance(dto.getDateDelivrance());
+        passport.setDateExpiration(dto.getDateExpiration());
+        return passportRepository.save(passport);
+    }
+
+    private VisaTransformable mettreAJourVisaTransformable(VisaTransformable visaTransformable, VisaTransformableDTO dto) {
+        if (visaTransformable == null || dto == null) {
+            return visaTransformable;
+        }
+
+        if (isBlank(dto.getReferenceVisa())) {
+            throw new IllegalArgumentException("La reference visa est obligatoire.");
+        }
+        if (dto.getDateEntreeMada() == null) {
+            throw new IllegalArgumentException("La date d'entree Madagascar est obligatoire.");
+        }
+
+        visaTransformable.setReferenceVisa(dto.getReferenceVisa().trim());
+        visaTransformable.setDateEntreeMada(dto.getDateEntreeMada());
+        visaTransformable.setLieuEntreeMada(dto.getLieuEntreeMada());
+        visaTransformable.setDateSortie(dto.getDateSortie());
+        return visaTransformableRepository.save(visaTransformable);
+    }
+
+    private String obtenirNumeroDemande(String numero) {
+        if (!isBlank(numero)) {
+            String numeroNormalise = numero.trim();
+            if (demandeRepository.existsByNumero(numeroNormalise)) {
+                throw new IllegalArgumentException("Le numero de la demande est deja utilise.");
+            }
+            return numeroNormalise;
+        }
+
+        return genererNumeroDemande();
+    }
+
+    private String genererNumeroDemande() {
+        String numero;
+        do {
+            numero = "DEM-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        } while (demandeRepository.existsByNumero(numero));
+        return numero;
     }
 
     private void enregistrerStatut(Integer idDemande, Integer idStatut) {

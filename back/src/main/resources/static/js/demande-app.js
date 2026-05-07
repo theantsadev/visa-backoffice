@@ -82,15 +82,24 @@
         return values;
     }
 
+    function isSectionEmpty(values) {
+        if (!values) {
+            return true;
+        }
+
+        return Object.values(values).every((value) => value == null || value === "");
+    }
+
     function writeSection(modelName, values) {
         const model = getModelDefinition(modelName);
         Object.keys(model).forEach((fieldName) => {
-            if (values && values[fieldName] != null) {
-                const element = getFieldElement(fieldName);
-                if (element) {
-                    element.value = String(values[fieldName]);
-                }
+            const element = getFieldElement(fieldName);
+            if (!element) {
+                return;
             }
+
+            const nextValue = values ? values[fieldName] : null;
+            element.value = nextValue == null ? "" : String(nextValue);
         });
     }
 
@@ -140,6 +149,25 @@
 
     function isWithoutDataMode() {
         return Boolean(sansDonneesCheckbox && sansDonneesCheckbox.checked);
+    }
+
+    function syncTransferPassportNumbers() {
+        if (!isRequestTypeTransfer()) {
+            return;
+        }
+
+        const passportNumero = getFieldValue("numero");
+        const newPassportNumero = getFieldValue("numeroNouveau");
+        const passportNumeroField = getFieldElement("numero");
+        const newPassportNumeroField = getFieldElement("numeroNouveau");
+
+        if (passportNumero && !newPassportNumero && newPassportNumeroField) {
+            newPassportNumeroField.value = passportNumero;
+        }
+
+        if (!passportNumero && newPassportNumero && passportNumeroField) {
+            passportNumeroField.value = newPassportNumero;
+        }
     }
 
     function syncWizardUi() {
@@ -247,7 +275,8 @@
 
         writeSection("requestSelection", {
             idTypeDemande: detail.idTypeDemande,
-            idTypeVisa: detail.idTypeVisa
+            idTypeVisa: detail.idTypeVisa,
+            numeroDemande: detail.numero
         });
         writeSection("demandeurForm", detail.demandeur || {});
         writeSection("passportForm", detail.passport || {});
@@ -392,12 +421,18 @@
     }
 
     function buildRequestEnvelope() {
+        const requestSelection = readSection("requestSelection");
+        const visaTransformableValues = readSection("visaTransformableForm");
         return {
+            numero: requestSelection.numeroDemande,
             idDemandeur: requestDraft.requestIds.idDemandeur,
             idPassport: requestDraft.requestIds.idPassport,
             idVisaTransformable: requestDraft.requestIds.idVisaTransformable,
-            idTypeVisa: readSection("requestSelection").idTypeVisa,
-            idTypeDemande: readSection("requestSelection").idTypeDemande
+            idTypeVisa: requestSelection.idTypeVisa,
+            idTypeDemande: requestSelection.idTypeDemande,
+            demandeur: readSection("demandeurForm"),
+            passport: readSection("passportForm"),
+            visaTransformable: isSectionEmpty(visaTransformableValues) ? null : visaTransformableValues
         };
     }
 
@@ -575,6 +610,8 @@
         let response;
         const requestSelection = readSection("requestSelection");
 
+        syncTransferPassportNumbers();
+
         if (editMode) {
             if (!requestSelection.idTypeDemande) {
                 throw new Error("Veuillez selectionner un type de demande.");
@@ -592,6 +629,7 @@
 
             window.location.href = confirmationUrl + "?" + new URLSearchParams({
                 id: String(response.id || ""),
+                numero: String(response.numero || ""),
                 statut: String(response.statut || ""),
                 date: String(response.dateDemande || "")
             }).toString();
@@ -612,6 +650,7 @@
 
         window.location.href = confirmationUrl + "?" + new URLSearchParams({
             id: String(response.id || ""),
+            numero: String(response.numero || ""),
             statut: String(response.statut || ""),
             date: String(response.dateDemande || "")
         }).toString();
