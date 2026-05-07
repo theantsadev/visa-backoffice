@@ -336,7 +336,8 @@ public class DemandeEffectueeService {
         StatutDemande statut = determinerStatut(demandeCible, piecesCible);
         enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
-        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+        return new DemandeSoumiseDTO(demandeCible.getId(), demandeCible.getNumero(), statut.getLibelle(),
+            demandeCible.getDateDemande());
     }
 
     @Transactional
@@ -372,7 +373,8 @@ public class DemandeEffectueeService {
         StatutDemande statut = determinerStatut(demandeCible, piecesCible);
         enregistrerStatutSiNecessaire(demandeCible.getId(), statut.getId());
 
-        return new DemandeSoumiseDTO(demandeCible.getId(), statut.getLibelle(), demandeCible.getDateDemande());
+        return new DemandeSoumiseDTO(demandeCible.getId(), demandeCible.getNumero(), statut.getLibelle(),
+            demandeCible.getDateDemande());
     }
 
     public void validerPiecesObligatoires(List<DemandeDTO.PieceJointeDTO> pieces, Integer idTypeVisa,
@@ -460,7 +462,7 @@ public class DemandeEffectueeService {
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable: " + statutLibelle));
 
         enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
-        return new DemandeSoumiseDTO(demande.getId(), statut.getLibelle(), demande.getDateDemande());
+        return new DemandeSoumiseDTO(demande.getId(), demande.getNumero(), statut.getLibelle(), demande.getDateDemande());
     }
 
     private Demande creerDemandeEtNouveauTitreSansDonnees(DemandeDTO dto) {
