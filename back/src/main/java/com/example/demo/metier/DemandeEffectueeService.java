@@ -33,6 +33,7 @@ import com.example.demo.model.Nationnalite;
 import com.example.demo.model.Passport;
 import com.example.demo.model.PieceAFournir;
 import com.example.demo.model.PieceJointe;
+import com.example.demo.model.PhotoSignature;
 import com.example.demo.model.SituationFamiliale;
 import com.example.demo.model.StatutDemande;
 import com.example.demo.model.TypeDemande;
@@ -48,6 +49,7 @@ import com.example.demo.repository.NationnaliteRepository;
 import com.example.demo.repository.PassportRepository;
 import com.example.demo.repository.PieceAFournirRepository;
 import com.example.demo.repository.PieceJointeRepository;
+import com.example.demo.repository.PhotoSignatureRepository;
 import com.example.demo.repository.SituationFamilialeRepository;
 import com.example.demo.repository.StatutDemandeRepository;
 import com.example.demo.repository.TypeDemandeRepository;
@@ -58,8 +60,9 @@ import com.example.demo.repository.VisaTransformableRepository;
 public class DemandeEffectueeService {
 
     private static final Integer ID_STATUT_DOSSIER_CREE = 1;
-    private static final Integer ID_STATUT_SCAN_TERMINE = 2;
-    private static final Integer ID_STATUT_VISA_ACCORDE = 3;
+    private static final Integer ID_STATUT_PHOTO_TERMINEE = 2;
+    private static final Integer ID_STATUT_SCAN_TERMINE = 3;
+    private static final Integer ID_STATUT_VISA_ACCORDE = 4;
     private static final Integer ID_TYPE_DEMANDE_NOUVEAU_TITRE = 1;
     private static final Integer ID_TYPE_DEMANDE_DUPLICATA = 2;
     private static final Integer ID_TYPE_DEMANDE_TRANSFERT = 3;
@@ -79,6 +82,7 @@ public class DemandeEffectueeService {
     private final PieceJointeRepository pieceJointeRepository;
     private final NationnaliteRepository nationnaliteRepository;
     private final SituationFamilialeRepository situationFamilialeRepository;
+    private final PhotoSignatureRepository photoSignatureRepository;
     private final Path uploadRoot;
 
     public DemandeEffectueeService(
@@ -97,6 +101,7 @@ public class DemandeEffectueeService {
             PieceJointeRepository pieceJointeRepository,
             NationnaliteRepository nationnaliteRepository,
             SituationFamilialeRepository situationFamilialeRepository,
+            PhotoSignatureRepository photoSignatureRepository,
             @Value("${app.upload-dir:uploads/pieces-jointes}") String uploadDir) {
         this.demandeurRepository = demandeurRepository;
         this.passportRepository = passportRepository;
@@ -113,6 +118,7 @@ public class DemandeEffectueeService {
         this.pieceJointeRepository = pieceJointeRepository;
         this.nationnaliteRepository = nationnaliteRepository;
         this.situationFamilialeRepository = situationFamilialeRepository;
+        this.photoSignatureRepository = photoSignatureRepository;
         this.uploadRoot = Path.of(uploadDir);
     }
 
@@ -437,10 +443,15 @@ public class DemandeEffectueeService {
 
         boolean toutesLesPiecesCompletes = piecesFournies.containsAll(toutesLesPieces);
         boolean tousLesChampsOptionnelsComplets = sontChampsOptionnelsComplets(demandeNouveauTitre);
+        boolean photoSignaturePresentes = sontPhotoSignaturePresentes(demande.getId());
 
-        Integer idStatut = (toutesLesPiecesCompletes && tousLesChampsOptionnelsComplets)
-                ? ID_STATUT_SCAN_TERMINE
-                : ID_STATUT_DOSSIER_CREE;
+        Integer idStatut;
+        if (toutesLesPiecesCompletes && tousLesChampsOptionnelsComplets) {
+            // Si tout est complet, determiner le statut en fonction de la photo/signature
+            idStatut = photoSignaturePresentes ? ID_STATUT_SCAN_TERMINE : ID_STATUT_PHOTO_TERMINEE;
+        } else {
+            idStatut = ID_STATUT_DOSSIER_CREE;
+        }
 
         return statutDemandeRepository.findById(idStatut)
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + idStatut));
@@ -460,6 +471,9 @@ public class DemandeEffectueeService {
 
         StatutDemande statut = statutDemandeRepository.findByLibelleIgnoreCase(statutLibelle)
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable: " + statutLibelle));
+
+        // Validation des transitions de statut
+        validerTransitionStatut(demande.getId(), statut.getId());
 
         enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
         return new DemandeSoumiseDTO(demande.getId(), demande.getNumero(), statut.getLibelle(), demande.getDateDemande());
@@ -584,7 +598,9 @@ public class DemandeEffectueeService {
         }
 
         StatutDemande statutActuel = getStatutActuel(demande.getId());
-        if (statutActuel != null && !ID_STATUT_DOSSIER_CREE.equals(statutActuel.getId())) {
+        if (statutActuel != null && 
+            !ID_STATUT_DOSSIER_CREE.equals(statutActuel.getId()) && 
+            !ID_STATUT_PHOTO_TERMINEE.equals(statutActuel.getId())) {
             throw new IllegalArgumentException("La demande n'est plus modifiable.");
         }
 
@@ -600,6 +616,16 @@ public class DemandeEffectueeService {
                 .map(historique -> historique.getStatutDemande())
                 .flatMap(statutDemandeRepository::findById)
                 .orElse(null);
+    }
+
+    private boolean estDemandeModifiable(Integer idDemande) {
+        StatutDemande statutActuel = getStatutActuel(idDemande);
+        if (statutActuel == null) {
+            return true;
+        }
+
+        return ID_STATUT_DOSSIER_CREE.equals(statutActuel.getId()) || 
+               ID_STATUT_PHOTO_TERMINEE.equals(statutActuel.getId());
     }
 
     private void enregistrerStatutSiNecessaire(Integer idDemande, Integer idStatut) {
@@ -769,6 +795,34 @@ public class DemandeEffectueeService {
                 && visaTransformable != null
                 && !isBlank(visaTransformable.getLieuEntreeMada())
                 && visaTransformable.getDateSortie() != null;
+    }
+
+    private boolean sontPhotoSignaturePresentes(Integer idDemande) {
+        if (idDemande == null) {
+            return false;
+        }
+
+        java.util.Optional<PhotoSignature> photoSignature = photoSignatureRepository.findByIdDemande(idDemande);
+        if (!photoSignature.isPresent()) {
+            return false;
+        }
+
+        PhotoSignature ps = photoSignature.get();
+        return !isBlank(ps.getLienPhoto()) && !isBlank(ps.getLienSignature());
+    }
+
+    private void validerTransitionStatut(Integer idDemande, Integer idStatutNouveau) {
+        if (idDemande == null || idStatutNouveau == null) {
+            return;
+        }
+
+        // Validation: passage vers SCAN_TERMINE requiert photo et signature
+        if (ID_STATUT_SCAN_TERMINE.equals(idStatutNouveau)) {
+            if (!sontPhotoSignaturePresentes(idDemande)) {
+                throw new IllegalArgumentException(
+                    "La photo et la signature sont obligatoires pour passer au statut 'Scan termine'.");
+            }
+        }
     }
 
     private void supprimerFichierPieceJointe(String lien) {

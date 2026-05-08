@@ -51,9 +51,10 @@ VALUES
 INSERT INTO statut_demande (statut_demande, libelle)
 VALUES
     (1, 'Dossier cree'),
-    (2, 'Scan termine'),
-    (3, 'Visa accorde'),
-    (4, 'Visa rejete');
+    (2, 'Photo terminee'),
+    (3, 'Scan termine'),
+    (4, 'Visa accorde'),
+    (5, 'Visa rejete');
 
 -- Situation familiale
 INSERT INTO statut_familial (id_statut_familial, libelle)
