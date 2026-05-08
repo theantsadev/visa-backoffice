@@ -37,8 +37,8 @@ dossier cree (modifiable,obligatoire complet)
 
 ### Lot 2 - Couvrir les regles de transition
 
-- [ ] Ajouter les controles de transition dans `DemandeEffectueeService` pour empecher un passage direct vers `scan termine` si la photo ou la signature n'est pas enregistree.
-- [ ] Faire en sorte que la validation admin conserve la logique actuelle autour de `DemandeController.accepter()` et `DemandeController.refuser()`, tout en permettant d'acter le passage final a `visa accorde` apres `scan termine`.
+- [x] Ajouter les controles de transition dans `DemandeEffectueeService` pour empecher un passage direct vers `scan termine` si la photo ou la signature n'est pas enregistree.
+- [x] Faire en sorte que la validation admin conserve la logique actuelle autour de `DemandeController.accepter()` et `DemandeController.refuser()`, tout en permettant d'acter le passage final a `visa accorde` apres `scan termine`.
 
 ---
 
@@ -47,7 +47,7 @@ dossier cree (modifiable,obligatoire complet)
 ### Lot 1 - Exposer les operations de photo et signature
 
 - [ ] Ajouter dans `DemandeController` les endpoints necessaires pour enregistrer la photo et la signature, en consommant du `multipart/form-data` comme les autres routes du module `demande`.
-- [ ] Ajouter une methode metier equivalente a `uploadPieceJointe` dans `DemandeEffectueeService` pour stocker la photo sur disque, en reutilisant le dossier de televersement configure par `app.upload-dir`.
+- [ ] Ajouter une methode metier equivalente a `uploadPieceJointe` dans `DemandeEffectueeService` pour stocker la photo ou meme signature sur disque, en reutilisant le dossier de televersement configure par `app.upload-dir`.
 - [ ] Ajouter une methode `enregistrerPhotoSignature(id_demande, lien_photo, lien_signature)` dans `DemandeEffectueeService`, avec persistance de la ligne `photo_signature` et retour d'un objet exploitable par le front.
 - [ ] Centraliser les validations metier: fichier manquant, format invalide, demande inexistante, demande non modifiable, photo ou signature deja renseignee.
 - [ ] Si la demande de type edition existe deja dans le code, brancher la nouvelle etape sur le flux de mise a jour sans dupliquer la logique de creation.

@@ -443,10 +443,15 @@ public class DemandeEffectueeService {
 
         boolean toutesLesPiecesCompletes = piecesFournies.containsAll(toutesLesPieces);
         boolean tousLesChampsOptionnelsComplets = sontChampsOptionnelsComplets(demandeNouveauTitre);
+        boolean photoSignaturePresentes = sontPhotoSignaturePresentes(demande.getId());
 
-        Integer idStatut = (toutesLesPiecesCompletes && tousLesChampsOptionnelsComplets)
-                ? ID_STATUT_SCAN_TERMINE
-                : ID_STATUT_DOSSIER_CREE;
+        Integer idStatut;
+        if (toutesLesPiecesCompletes && tousLesChampsOptionnelsComplets) {
+            // Si tout est complet, determiner le statut en fonction de la photo/signature
+            idStatut = photoSignaturePresentes ? ID_STATUT_SCAN_TERMINE : ID_STATUT_PHOTO_TERMINEE;
+        } else {
+            idStatut = ID_STATUT_DOSSIER_CREE;
+        }
 
         return statutDemandeRepository.findById(idStatut)
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable pour id=" + idStatut));
@@ -466,6 +471,9 @@ public class DemandeEffectueeService {
 
         StatutDemande statut = statutDemandeRepository.findByLibelleIgnoreCase(statutLibelle)
                 .orElseThrow(() -> new IllegalArgumentException("Statut introuvable: " + statutLibelle));
+
+        // Validation des transitions de statut
+        validerTransitionStatut(demande.getId(), statut.getId());
 
         enregistrerStatutSiNecessaire(demande.getId(), statut.getId());
         return new DemandeSoumiseDTO(demande.getId(), demande.getNumero(), statut.getLibelle(), demande.getDateDemande());
@@ -787,6 +795,34 @@ public class DemandeEffectueeService {
                 && visaTransformable != null
                 && !isBlank(visaTransformable.getLieuEntreeMada())
                 && visaTransformable.getDateSortie() != null;
+    }
+
+    private boolean sontPhotoSignaturePresentes(Integer idDemande) {
+        if (idDemande == null) {
+            return false;
+        }
+
+        java.util.Optional<PhotoSignature> photoSignature = photoSignatureRepository.findByIdDemande(idDemande);
+        if (!photoSignature.isPresent()) {
+            return false;
+        }
+
+        PhotoSignature ps = photoSignature.get();
+        return !isBlank(ps.getLienPhoto()) && !isBlank(ps.getLienSignature());
+    }
+
+    private void validerTransitionStatut(Integer idDemande, Integer idStatutNouveau) {
+        if (idDemande == null || idStatutNouveau == null) {
+            return;
+        }
+
+        // Validation: passage vers SCAN_TERMINE requiert photo et signature
+        if (ID_STATUT_SCAN_TERMINE.equals(idStatutNouveau)) {
+            if (!sontPhotoSignaturePresentes(idDemande)) {
+                throw new IllegalArgumentException(
+                    "La photo et la signature sont obligatoires pour passer au statut 'Scan termine'.");
+            }
+        }
     }
 
     private void supprimerFichierPieceJointe(String lien) {
