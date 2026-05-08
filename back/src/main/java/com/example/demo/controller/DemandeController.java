@@ -107,4 +107,11 @@ public class DemandeController {
     public DemandeSoumiseDTO refuser(@PathVariable Integer idDemande) {
         return demandeEffectueeService.validerParAdmin(idDemande, "Visa rejete");
     }
+
+    @PostMapping(value = "/{idDemande}/photo-signature", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DemandeSoumiseDTO enregistrerPhotoSignature(@PathVariable Integer idDemande,
+            @RequestPart("photo") MultipartFile photo,
+            @RequestPart("signature") MultipartFile signature) {
+        return demandeEffectueeService.enregistrerPhotoSignature(idDemande, photo, signature);
+    }
 }

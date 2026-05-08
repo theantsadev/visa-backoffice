@@ -24,6 +24,7 @@ import com.example.demo.model.HistoriqueStatutDemande;
 import com.example.demo.model.Passport;
 import com.example.demo.model.PieceAFournir;
 import com.example.demo.model.PieceJointe;
+import com.example.demo.model.PhotoSignature;
 import com.example.demo.model.StatutDemande;
 import com.example.demo.model.VisaTransformable;
 import com.example.demo.repository.DemandeNouveauTitreRepository;
@@ -34,6 +35,7 @@ import com.example.demo.repository.HistoriqueStatutDemandeRepository;
 import com.example.demo.repository.PassportRepository;
 import com.example.demo.repository.PieceAFournirRepository;
 import com.example.demo.repository.PieceJointeRepository;
+import com.example.demo.repository.PhotoSignatureRepository;
 import com.example.demo.repository.StatutDemandeRepository;
 
 @Service
@@ -48,6 +50,7 @@ public class DemandeListeService {
     private final PieceJointeRepository pieceJointeRepository;
     private final PieceAFournirRepository pieceAFournirRepository;
     private final PassportRepository passportRepository;
+    private final PhotoSignatureRepository photoSignatureRepository;
 
     public DemandeListeService(
             DemandeRepository demandeRepository,
@@ -58,7 +61,8 @@ public class DemandeListeService {
             StatutDemandeRepository statutDemandeRepository,
             PieceJointeRepository pieceJointeRepository,
             PieceAFournirRepository pieceAFournirRepository,
-            PassportRepository passportRepository) {
+            PassportRepository passportRepository,
+            PhotoSignatureRepository photoSignatureRepository) {
         this.demandeRepository = demandeRepository;
         this.demandeNouveauTitreRepository = demandeNouveauTitreRepository;
         this.demandeDuplicataCarteResidentRepository = demandeDuplicataCarteResidentRepository;
@@ -68,6 +72,7 @@ public class DemandeListeService {
         this.pieceJointeRepository = pieceJointeRepository;
         this.pieceAFournirRepository = pieceAFournirRepository;
         this.passportRepository = passportRepository;
+        this.photoSignatureRepository = photoSignatureRepository;
     }
 
     public List<DemandeListeItemDTO> listerToutesLesDemandes() {
@@ -111,6 +116,13 @@ public class DemandeListeService {
                         piece.getLien()))
                 .toList();
 
+        DemandeDetailDTO.PhotoSignatureDetailDTO photoSignatureDetail = photoSignatureRepository
+            .findByIdDemande(idDemande)
+            .map(photoSignature -> new DemandeDetailDTO.PhotoSignatureDetailDTO(
+                photoSignature.getLienPhoto(),
+                photoSignature.getLienSignature()))
+            .orElse(null);
+
         return new DemandeDetailDTO(
                 demande.getId(),
                 demande.getNumero(),
@@ -123,7 +135,8 @@ public class DemandeListeService {
                 toDemandeurDetail(demande.getDemandeur()),
                 toPassportDetail(getPassport(demande)),
                 toVisaTransformableDetail(getVisaTransformable(demande)),
-                piecesJointesDetail);
+                piecesJointesDetail,
+                photoSignatureDetail);
     }
 
     public List<DemandeSuiviDTO> toListDemandeSuiviDTO(List<Demande> demandesLieesDemandeur) {

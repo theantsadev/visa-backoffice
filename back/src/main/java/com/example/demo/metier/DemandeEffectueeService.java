@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -823,6 +824,124 @@ public class DemandeEffectueeService {
                     "La photo et la signature sont obligatoires pour passer au statut 'Scan termine'.");
             }
         }
+    }
+
+    @Transactional
+    public DemandeSoumiseDTO enregistrerPhotoSignature(Integer idDemande, MultipartFile photo,
+            MultipartFile signature) {
+        if (idDemande == null) {
+            throw new IllegalArgumentException("L'id de la demande est obligatoire.");
+        }
+
+        Demande demande = demandeRepository.findById(idDemande)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable pour id=" + idDemande));
+
+        if (!estDemandeModifiable(idDemande)) {
+            throw new IllegalArgumentException("La demande n'est plus modifiable.");
+        }
+
+        if (photo == null || photo.isEmpty()) {
+            throw new IllegalArgumentException("La photo est obligatoire.");
+        }
+        if (signature == null || signature.isEmpty()) {
+            throw new IllegalArgumentException("La signature est obligatoire.");
+        }
+
+        PhotoSignature existing = photoSignatureRepository.findByIdDemande(idDemande).orElse(null);
+        if (existing != null && (!isBlank(existing.getLienPhoto()) || !isBlank(existing.getLienSignature()))) {
+            throw new IllegalArgumentException("La photo et la signature sont deja renseignees.");
+        }
+
+        validerFichierImage(photo, "photo");
+        validerFichierImage(signature, "signature");
+
+        String lienPhoto = enregistrerFichierPhotoSignature(idDemande, "photo", photo);
+        String lienSignature = enregistrerFichierPhotoSignature(idDemande, "signature", signature);
+
+        enregistrerPhotoSignature(idDemande, lienPhoto, lienSignature, existing);
+
+        StatutDemande statut = statutDemandeRepository.findById(ID_STATUT_PHOTO_TERMINEE)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Statut introuvable pour id=" + ID_STATUT_PHOTO_TERMINEE));
+        enregistrerStatutSiNecessaire(idDemande, statut.getId());
+
+        return new DemandeSoumiseDTO(demande.getId(), demande.getNumero(), statut.getLibelle(),
+                demande.getDateDemande());
+    }
+
+    public PhotoSignature enregistrerPhotoSignature(Integer idDemande, String lienPhoto, String lienSignature) {
+        return enregistrerPhotoSignature(idDemande, lienPhoto, lienSignature,
+                photoSignatureRepository.findByIdDemande(idDemande).orElse(null));
+    }
+
+    private PhotoSignature enregistrerPhotoSignature(Integer idDemande, String lienPhoto, String lienSignature,
+            PhotoSignature existing) {
+        if (idDemande == null) {
+            throw new IllegalArgumentException("L'id de la demande est obligatoire.");
+        }
+        if (isBlank(lienPhoto) || isBlank(lienSignature)) {
+            throw new IllegalArgumentException("La photo et la signature sont obligatoires.");
+        }
+
+        PhotoSignature photoSignature = existing == null ? new PhotoSignature() : existing;
+        photoSignature.setIdDemande(idDemande);
+        photoSignature.setLienPhoto(lienPhoto);
+        photoSignature.setLienSignature(lienSignature);
+        return photoSignatureRepository.save(photoSignature);
+    }
+
+    private void validerFichierImage(MultipartFile file, String libelle) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Le fichier " + libelle + " est obligatoire.");
+        }
+
+        String contentType = file.getContentType();
+        String safeType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        boolean imageOk = safeType.startsWith("image/")
+                && (safeType.contains("png") || safeType.contains("jpeg") || safeType.contains("jpg"));
+
+        if (!imageOk) {
+            throw new IllegalArgumentException("Format invalide pour " + libelle + ".");
+        }
+    }
+
+    private String enregistrerFichierPhotoSignature(Integer idDemande, String prefix, MultipartFile file) {
+        try {
+            Path dossierDemande = uploadRoot.resolve(String.valueOf(idDemande));
+            Files.createDirectories(dossierDemande);
+
+            String nomOriginal = StringUtils
+                    .cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
+            String nomBase = Paths.get(nomOriginal).getFileName().toString();
+            String extension = obtenirExtensionFichier(nomBase, file.getContentType());
+
+            String nomStocke = prefix + "-" + UUID.randomUUID() + extension;
+            Path destination = dossierDemande.resolve(nomStocke);
+
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/" + idDemande + "/" + nomStocke;
+        } catch (IOException e) {
+            throw new IllegalStateException("Impossible d'enregistrer le fichier " + prefix + ".", e);
+        }
+    }
+
+    private String obtenirExtensionFichier(String nomOriginal, String contentType) {
+        if (nomOriginal != null && nomOriginal.contains(".")) {
+            String extension = nomOriginal.substring(nomOriginal.lastIndexOf('.'));
+            if (!extension.isBlank()) {
+                return extension;
+            }
+        }
+
+        String safeType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        if (safeType.contains("png")) {
+            return ".png";
+        }
+        if (safeType.contains("jpeg") || safeType.contains("jpg")) {
+            return ".jpg";
+        }
+
+        return ".png";
     }
 
     private void supprimerFichierPieceJointe(String lien) {
