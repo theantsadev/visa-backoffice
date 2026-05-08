@@ -16,7 +16,8 @@ public record DemandeDetailDTO(
         DemandeurDetailDTO demandeur,
         PassportDetailDTO passport,
         VisaTransformableDetailDTO visaTransformable,
-        List<PieceJointeDetailDTO> piecesJointes) {
+        List<PieceJointeDetailDTO> piecesJointes,
+        PhotoSignatureDetailDTO photoSignature) {
 
     public record DemandeurDetailDTO(
             Integer idDemandeur,
@@ -51,5 +52,10 @@ public record DemandeDetailDTO(
             Integer idPieceAFournir,
             String nomPiece,
             String lien) {
+    }
+
+    public record PhotoSignatureDetailDTO(
+            String lienPhoto,
+            String lienSignature) {
     }
 }

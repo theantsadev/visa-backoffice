@@ -20,6 +20,16 @@
     const titleEl = document.getElementById("demandeTitle");
     const editId = new URLSearchParams(window.location.search).get("editId");
     const editMode = Boolean(editId);
+    const photoVideo = document.getElementById("photoVideo");
+    const photoCanvas = document.getElementById("photoCanvas");
+    const signatureCanvas = document.getElementById("signatureCanvas");
+    const startCameraButton = document.getElementById("btnStartCamera");
+    const capturePhotoButton = document.getElementById("btnCapturePhoto");
+    const retakePhotoButton = document.getElementById("btnRetakePhoto");
+    const clearSignatureButton = document.getElementById("btnClearSignature");
+    const photoStatusEl = document.getElementById("photoStatus");
+    const signatureStatusEl = document.getElementById("signatureStatus");
+    const photoSignatureExistingEl = document.getElementById("photoSignatureExisting");
 
     const demandContracts = window.DemandeContracts || {};
     const stepMax = demandContracts.stepMax || 5;
@@ -34,7 +44,16 @@
             idVisaTransformable: null
         },
         requestSelection: {},
-        pieces: []
+        pieces: [],
+        photoSignature: {
+            existingPhoto: "",
+            existingSignature: "",
+            photoBlob: null,
+            signatureBlob: null,
+            hasSignatureInk: false,
+            cameraError: "",
+            stream: null
+        }
     };
 
     const referenceSources = [
@@ -49,6 +68,283 @@
     function setStatusMessage(message, isSuccess) {
         statusMessageEl.textContent = message || "";
         statusMessageEl.classList.toggle("ok", Boolean(isSuccess));
+    }
+
+    function setPhotoStatus(message) {
+        if (!photoStatusEl) {
+            return;
+        }
+
+        photoStatusEl.textContent = message || "";
+    }
+
+    function setSignatureStatus(message) {
+        if (!signatureStatusEl) {
+            return;
+        }
+
+        signatureStatusEl.textContent = message || "";
+    }
+
+    function stopCamera() {
+        if (requestDraft.photoSignature.stream) {
+            requestDraft.photoSignature.stream.getTracks().forEach((track) => track.stop());
+            requestDraft.photoSignature.stream = null;
+        }
+    }
+
+    async function startCamera() {
+        if (!photoVideo) {
+            return;
+        }
+
+        stopCamera();
+        requestDraft.photoSignature.cameraError = "";
+        setPhotoStatus("");
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            requestDraft.photoSignature.stream = stream;
+            photoVideo.srcObject = stream;
+            photoVideo.hidden = false;
+            if (photoCanvas) {
+                photoCanvas.hidden = true;
+            }
+            setPhotoStatus("Camera active.");
+        } catch (error) {
+            requestDraft.photoSignature.cameraError = "Impossible d'acceder a la camera.";
+            setPhotoStatus(requestDraft.photoSignature.cameraError);
+        }
+    }
+
+    function showCapturedPhoto(canvas) {
+        if (!photoVideo || !canvas) {
+            return;
+        }
+
+        photoVideo.hidden = true;
+        canvas.hidden = false;
+        setPhotoStatus("Photo capturee.");
+    }
+
+    function resetPhotoCapture() {
+        requestDraft.photoSignature.photoBlob = null;
+        if (photoCanvas) {
+            const ctx = photoCanvas.getContext("2d");
+            if (ctx) {
+                ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+            }
+            photoCanvas.hidden = true;
+        }
+        if (photoVideo) {
+            photoVideo.hidden = false;
+        }
+        setPhotoStatus("");
+    }
+
+    function resizeSignatureCanvas() {
+        if (!signatureCanvas) {
+            return;
+        }
+
+        const ratio = window.devicePixelRatio || 1;
+        const rect = signatureCanvas.getBoundingClientRect();
+        signatureCanvas.width = rect.width * ratio;
+        signatureCanvas.height = rect.height * ratio;
+
+        const ctx = signatureCanvas.getContext("2d");
+        if (ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(ratio, ratio);
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#102027";
+        }
+    }
+
+    function clearSignatureCanvas() {
+        if (!signatureCanvas) {
+            return;
+        }
+
+        const ctx = signatureCanvas.getContext("2d");
+        if (ctx) {
+            ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        }
+        requestDraft.photoSignature.hasSignatureInk = false;
+        requestDraft.photoSignature.signatureBlob = null;
+        setSignatureStatus("");
+    }
+
+    function isSignatureBlank() {
+        if (!signatureCanvas) {
+            return true;
+        }
+
+        const ctx = signatureCanvas.getContext("2d");
+        if (!ctx) {
+            return true;
+        }
+
+        const width = signatureCanvas.width;
+        const height = signatureCanvas.height;
+        const data = ctx.getImageData(0, 0, width, height).data;
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] !== 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async function getPhoto() {
+        if (requestDraft.photoSignature.photoBlob) {
+            return requestDraft.photoSignature.photoBlob;
+        }
+
+        if (!photoVideo || !photoCanvas || !photoVideo.videoWidth) {
+            throw new Error("Camera indisponible.");
+        }
+
+        photoCanvas.width = photoVideo.videoWidth;
+        photoCanvas.height = photoVideo.videoHeight;
+        const ctx = photoCanvas.getContext("2d");
+        if (!ctx) {
+            throw new Error("Impossible de capturer la photo.");
+        }
+
+        ctx.drawImage(photoVideo, 0, 0, photoCanvas.width, photoCanvas.height);
+        const blob = await new Promise((resolve, reject) => {
+            photoCanvas.toBlob((nextBlob) => {
+                if (!nextBlob) {
+                    reject(new Error("Impossible de capturer la photo."));
+                    return;
+                }
+                resolve(nextBlob);
+            }, "image/jpeg", 0.92);
+        });
+
+        if (blob.size > 10 * 1024 * 1024) {
+            throw new Error("Photo trop volumineuse.");
+        }
+
+        requestDraft.photoSignature.photoBlob = blob;
+        showCapturedPhoto(photoCanvas);
+        return blob;
+    }
+
+    async function getSignature() {
+        if (requestDraft.photoSignature.signatureBlob) {
+            return requestDraft.photoSignature.signatureBlob;
+        }
+
+        if (isSignatureBlank()) {
+            throw new Error("Signature obligatoire.");
+        }
+
+        const blob = await new Promise((resolve, reject) => {
+            signatureCanvas.toBlob((nextBlob) => {
+                if (!nextBlob) {
+                    reject(new Error("Impossible d'enregistrer la signature."));
+                    return;
+                }
+                resolve(nextBlob);
+            }, "image/png");
+        });
+
+        if (blob.size > 10 * 1024 * 1024) {
+            throw new Error("Signature trop volumineuse.");
+        }
+
+        requestDraft.photoSignature.signatureBlob = blob;
+        return blob;
+    }
+
+    function setupSignatureDrawing() {
+        if (!signatureCanvas) {
+            return;
+        }
+
+        resizeSignatureCanvas();
+        signatureCanvas.style.touchAction = "none";
+
+        let drawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        function getPoint(event) {
+            const rect = signatureCanvas.getBoundingClientRect();
+            if (event.touches && event.touches.length > 0) {
+                return {
+                    x: event.touches[0].clientX - rect.left,
+                    y: event.touches[0].clientY - rect.top
+                };
+            }
+            return {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+        }
+
+        function startDrawing(event) {
+            if (signatureCanvas.width === 0 || signatureCanvas.height === 0) {
+                resizeSignatureCanvas();
+            }
+            event.preventDefault();
+            drawing = true;
+            const point = getPoint(event);
+            lastX = point.x;
+            lastY = point.y;
+            if (signatureCanvas.setPointerCapture) {
+                signatureCanvas.setPointerCapture(event.pointerId);
+            }
+        }
+
+        function draw(event) {
+            if (!drawing) {
+                return;
+            }
+            event.preventDefault();
+
+            const ctx = signatureCanvas.getContext("2d");
+            if (!ctx) {
+                return;
+            }
+
+            const point = getPoint(event);
+            const x = point.x;
+            const y = point.y;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            lastX = x;
+            lastY = y;
+            requestDraft.photoSignature.hasSignatureInk = true;
+        }
+
+        function stopDrawing(event) {
+            drawing = false;
+            if (event && signatureCanvas.releasePointerCapture) {
+                signatureCanvas.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        signatureCanvas.addEventListener("pointerdown", startDrawing);
+        signatureCanvas.addEventListener("pointermove", draw);
+        signatureCanvas.addEventListener("pointerup", stopDrawing);
+        signatureCanvas.addEventListener("pointerleave", stopDrawing);
+
+        signatureCanvas.addEventListener("mousedown", startDrawing);
+        signatureCanvas.addEventListener("mousemove", draw);
+        signatureCanvas.addEventListener("mouseup", stopDrawing);
+        signatureCanvas.addEventListener("mouseleave", stopDrawing);
+
+        signatureCanvas.addEventListener("touchstart", startDrawing, { passive: false });
+        signatureCanvas.addEventListener("touchmove", draw, { passive: false });
+        signatureCanvas.addEventListener("touchend", stopDrawing, { passive: false });
     }
 
     function getFieldElement(fieldName) {
@@ -127,6 +423,9 @@
         if (step === 5) {
             return validatePiecesStep();
         }
+        if (step === 6) {
+            return validatePhotoSignatureStep();
+        }
 
         if (step === 3 && isRequestTypeTransfer()) {
             const passportError = validateSection(stepContract.model);
@@ -184,6 +483,10 @@
         previousStepButton.style.display = activeStep === 1 ? "none" : "inline-block";
         nextStepButton.style.display = activeStep === stepMax ? "none" : "inline-block";
         submitButton.style.display = activeStep === stepMax ? "inline-block" : "none";
+
+        if (activeStep === 6) {
+            resizeSignatureCanvas();
+        }
     }
 
     function syncRequestTypeUi() {
@@ -222,6 +525,58 @@
         const selectedOption = typeSelect.options[typeSelect.selectedIndex];
         const label = selectedOption && selectedOption.value ? selectedOption.textContent.trim() : "Nouveau titre";
         titleEl.textContent = editMode ? "modifier une demande" : "Demande de - " + label;
+    }
+
+    function loadImageInCanvas(url, canvas) {
+        if (!url || !canvas) {
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+            canvas.hidden = false;
+        };
+        img.src = url;
+    }
+
+    function hasExistingPhotoSignature() {
+        return Boolean(requestDraft.photoSignature.existingPhoto && requestDraft.photoSignature.existingSignature);
+    }
+
+    function syncPhotoSignatureUi() {
+        const hasExisting = hasExistingPhotoSignature();
+        if (photoSignatureExistingEl) {
+            photoSignatureExistingEl.hidden = !hasExisting;
+        }
+
+        [startCameraButton, capturePhotoButton, retakePhotoButton, clearSignatureButton].forEach((button) => {
+            if (button) {
+                button.disabled = hasExisting;
+            }
+        });
+
+        if (signatureCanvas) {
+            signatureCanvas.classList.toggle("is-disabled", hasExisting);
+        }
+
+        if (hasExisting) {
+            if (photoVideo) {
+                photoVideo.hidden = true;
+            }
+            if (photoCanvas) {
+                loadImageInCanvas(requestDraft.photoSignature.existingPhoto, photoCanvas);
+            }
+            if (signatureCanvas) {
+                loadImageInCanvas(requestDraft.photoSignature.existingSignature, signatureCanvas);
+            }
+        }
     }
 
     function getCategoryLabel(category) {
@@ -282,12 +637,18 @@
         writeSection("passportForm", detail.passport || {});
         writeSection("visaTransformableForm", detail.visaTransformable || {});
 
+        if (detail.photoSignature) {
+            requestDraft.photoSignature.existingPhoto = detail.photoSignature.lienPhoto || "";
+            requestDraft.photoSignature.existingSignature = detail.photoSignature.lienSignature || "";
+        }
+
         if (sansDonneesCheckbox) {
             sansDonneesCheckbox.checked = detail.idTypeDemande === 2 || detail.idTypeDemande === 3;
         }
 
         syncRequestTypeUi();
         syncTitle();
+        syncPhotoSignatureUi();
     }
 
     async function loadEditDetail() {
@@ -420,6 +781,28 @@
         return null;
     }
 
+    function validatePhotoSignatureStep() {
+        if (editMode && hasExistingPhotoSignature()
+                && !requestDraft.photoSignature.photoBlob
+                && !requestDraft.photoSignature.signatureBlob) {
+            return null;
+        }
+
+        if (requestDraft.photoSignature.cameraError) {
+            return requestDraft.photoSignature.cameraError;
+        }
+
+        if (!requestDraft.photoSignature.photoBlob) {
+            return "La photo est obligatoire.";
+        }
+
+        if (isSignatureBlank()) {
+            return "La signature est obligatoire.";
+        }
+
+        return null;
+    }
+
     function buildRequestEnvelope() {
         const requestSelection = readSection("requestSelection");
         const visaTransformableValues = readSection("visaTransformableForm");
@@ -486,6 +869,36 @@
 
     function buildMultipartPayload(basePayload) {
         return postMultipart(basePayload.url, basePayload.body, basePayload.files, basePayload.method || "POST");
+    }
+
+    function shouldUploadPhotoSignature() {
+        if (editMode && hasExistingPhotoSignature()
+                && !requestDraft.photoSignature.photoBlob
+                && !requestDraft.photoSignature.signatureBlob) {
+            return false;
+        }
+
+        return true;
+    }
+
+    async function postPhotoSignature(idDemande) {
+        const photoBlob = await getPhoto();
+        const signatureBlob = await getSignature();
+
+        const formData = new FormData();
+        formData.append("photo", photoBlob, "photo.jpg");
+        formData.append("signature", signatureBlob, "signature.png");
+
+        const response = await fetch("/api/demandes/" + Number(idDemande) + "/photo-signature", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw await buildApiError(response);
+        }
+
+        return response.json();
     }
 
     async function submitNewWithData() {
@@ -608,6 +1021,7 @@
         setStatusMessage("Envoi en cours...");
 
         let response;
+        let finalResponse;
         const requestSelection = readSection("requestSelection");
 
         syncTransferPassportNumbers();
@@ -627,11 +1041,13 @@
                 throw new Error("Le type de demande selectionne n'est pas compatible avec la modification.");
             }
 
+            finalResponse = shouldUploadPhotoSignature() ? await postPhotoSignature(response.id) : response;
+
             window.location.href = confirmationUrl + "?" + new URLSearchParams({
-                id: String(response.id || ""),
-                numero: String(response.numero || ""),
-                statut: String(response.statut || ""),
-                date: String(response.dateDemande || "")
+                id: String(finalResponse.id || ""),
+                numero: String(finalResponse.numero || ""),
+                statut: String(finalResponse.statut || ""),
+                date: String(finalResponse.dateDemande || "")
             }).toString();
             return;
         }
@@ -648,11 +1064,13 @@
             response = await submitNewWithData();
         }
 
+        finalResponse = shouldUploadPhotoSignature() ? await postPhotoSignature(response.id) : response;
+
         window.location.href = confirmationUrl + "?" + new URLSearchParams({
-            id: String(response.id || ""),
-            numero: String(response.numero || ""),
-            statut: String(response.statut || ""),
-            date: String(response.dateDemande || "")
+            id: String(finalResponse.id || ""),
+            numero: String(finalResponse.numero || ""),
+            statut: String(finalResponse.statut || ""),
+            date: String(finalResponse.dateDemande || "")
         }).toString();
     }
 
@@ -825,6 +1243,35 @@
         });
     });
 
+    if (startCameraButton) {
+        startCameraButton.addEventListener("click", async () => {
+            await startCamera();
+        });
+    }
+
+    if (capturePhotoButton) {
+        capturePhotoButton.addEventListener("click", async () => {
+            try {
+                await getPhoto();
+            } catch (error) {
+                setPhotoStatus(error.message || "Impossible de capturer la photo.");
+            }
+        });
+    }
+
+    if (retakePhotoButton) {
+        retakePhotoButton.addEventListener("click", async () => {
+            resetPhotoCapture();
+            await startCamera();
+        });
+    }
+
+    if (clearSignatureButton) {
+        clearSignatureButton.addEventListener("click", () => {
+            clearSignatureCanvas();
+        });
+    }
+
     form.addEventListener("input", () => {
     });
 
@@ -848,6 +1295,8 @@
 
     async function initialize() {
         syncWizardUi();
+        setupSignatureDrawing();
+        syncPhotoSignatureUi();
 
         try {
             await loadReferenceData();
@@ -870,6 +1319,14 @@
             setStatusMessage("Impossible de charger les donnees de reference: " + (error.message || "erreur inconnue"));
         }
     }
+
+    window.addEventListener("resize", () => {
+        resizeSignatureCanvas();
+    });
+
+    window.addEventListener("beforeunload", () => {
+        stopCamera();
+    });
 
     initialize();
 })();

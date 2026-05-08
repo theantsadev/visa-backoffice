@@ -112,11 +112,12 @@
         2: Object.freeze({ model: "demandeurForm" }),
         3: Object.freeze({ model: "passportForm", transferModel: "passportNouveauForm" }),
         4: Object.freeze({ model: "visaTransformableForm" }),
-        5: Object.freeze({ model: null })
+        5: Object.freeze({ model: null }),
+        6: Object.freeze({ model: null })
     });
 
     window.DemandeContracts = Object.freeze({
-        stepMax: 5,
+        stepMax: 6,
         models: payloadModels,
         formModels: formModels,
         stepContracts: stepContracts
