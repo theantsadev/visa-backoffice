@@ -176,28 +176,64 @@
                         <span>Cette demande contient deja une photo et une signature.</span>
                     </div>
                     <div class="media-grid">
-                        <div class="media-card">
-                            <p class="media-title">Photo</p>
-                            <div class="media-frame">
-                                <video id="photoVideo" autoplay playsinline></video>
+                        <div class="media-card" id="photoMediaCard">
+                            <div class="media-header">
+                                <div class="media-header-left">
+                                    <span class="media-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    </span>
+                                    <p class="media-title">Photo d'identite</p>
+                                </div>
+                                <span class="media-badge" id="photoBadge">En attente</span>
+                            </div>
+                            <div class="media-frame" id="photoFrame">
+                                <div class="media-placeholder" id="photoPlaceholder">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    <span>Activez la camera pour commencer</span>
+                                </div>
+                                <video id="photoVideo" autoplay playsinline hidden></video>
                                 <canvas id="photoCanvas" hidden></canvas>
                             </div>
                             <div class="media-actions">
-                                <button type="button" class="btn btn-outline" id="btnStartCamera">Activer la camera</button>
-                                <button type="button" class="btn btn-primary" id="btnCapturePhoto">Capturer</button>
-                                <button type="button" class="btn btn-ghost" id="btnRetakePhoto">Reprendre</button>
+                                <button type="button" class="btn btn-outline btn-icon" id="btnStartCamera">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                    Activer la camera
+                                </button>
+                                <button type="button" class="btn btn-primary btn-icon" id="btnCapturePhoto" hidden>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+                                    Capturer
+                                </button>
+                                <button type="button" class="btn btn-ghost btn-icon" id="btnRetakePhoto" hidden>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                    Reprendre
+                                </button>
                             </div>
-                            <p class="hint" id="photoStatus"></p>
+                            <p class="media-status" id="photoStatus"></p>
                         </div>
-                        <div class="media-card">
-                            <p class="media-title">Signature</p>
-                            <div class="signature-frame">
+                        <div class="media-card" id="signatureMediaCard">
+                            <div class="media-header">
+                                <div class="media-header-left">
+                                    <span class="media-icon media-icon-sig">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                    </span>
+                                    <p class="media-title">Signature</p>
+                                </div>
+                                <span class="media-badge" id="signatureBadge">En attente</span>
+                            </div>
+                            <div class="signature-frame" id="signatureFrame">
                                 <canvas id="signatureCanvas" width="320" height="140"></canvas>
+                                <div class="signature-hint" id="signatureHint">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                    <span>Dessinez votre signature ici</span>
+                                </div>
                             </div>
                             <div class="media-actions">
-                                <button type="button" class="btn btn-outline" id="btnClearSignature">Effacer</button>
+                                <button type="button" class="btn btn-outline btn-icon" id="btnClearSignature">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    Effacer
+                                </button>
                             </div>
-                            <p class="hint" id="signatureStatus"></p>
+                            <p class="media-status" id="signatureStatus"></p>
                         </div>
                     </div>
                 </div>

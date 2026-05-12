@@ -368,6 +368,59 @@
         }
 
         detailContent.appendChild(pieceSection);
+
+        var photoSigSection = document.createElement("article");
+        photoSigSection.className = "detail-block";
+
+        var photoSigTitle = document.createElement("h3");
+        photoSigTitle.textContent = "Photo et signature";
+        photoSigSection.appendChild(photoSigTitle);
+
+        var photoSig = detail.photoSignature || null;
+        var hasPhoto = photoSig && photoSig.lienPhoto;
+        var hasSignature = photoSig && photoSig.lienSignature;
+
+        if (!hasPhoto && !hasSignature) {
+            var emptyHint = document.createElement("p");
+            emptyHint.className = "photo-sig-detail-empty";
+            emptyHint.textContent = "Aucune photo ou signature enregistree pour cette demande.";
+            photoSigSection.appendChild(emptyHint);
+        } else {
+            var photoSigGrid = document.createElement("div");
+            photoSigGrid.className = "photo-sig-detail-grid";
+
+            if (hasPhoto) {
+                var photoCard = document.createElement("div");
+                photoCard.className = "photo-sig-detail-card";
+                var photoLabel = document.createElement("p");
+                photoLabel.textContent = "Photo d'identite";
+                var photoImg = document.createElement("img");
+                photoImg.src = photoSig.lienPhoto;
+                photoImg.alt = "Photo du demandeur";
+                photoImg.loading = "lazy";
+                photoCard.appendChild(photoLabel);
+                photoCard.appendChild(photoImg);
+                photoSigGrid.appendChild(photoCard);
+            }
+
+            if (hasSignature) {
+                var sigCard = document.createElement("div");
+                sigCard.className = "photo-sig-detail-card";
+                var sigLabel = document.createElement("p");
+                sigLabel.textContent = "Signature";
+                var sigImg = document.createElement("img");
+                sigImg.src = photoSig.lienSignature;
+                sigImg.alt = "Signature du demandeur";
+                sigImg.loading = "lazy";
+                sigCard.appendChild(sigLabel);
+                sigCard.appendChild(sigImg);
+                photoSigGrid.appendChild(sigCard);
+            }
+
+            photoSigSection.appendChild(photoSigGrid);
+        }
+
+        detailContent.appendChild(photoSigSection);
     }
 
     async function loadDetail(idDemande) {

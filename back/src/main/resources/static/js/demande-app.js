@@ -30,6 +30,14 @@
     const photoStatusEl = document.getElementById("photoStatus");
     const signatureStatusEl = document.getElementById("signatureStatus");
     const photoSignatureExistingEl = document.getElementById("photoSignatureExisting");
+    const photoBadgeEl = document.getElementById("photoBadge");
+    const signatureBadgeEl = document.getElementById("signatureBadge");
+    const photoFrameEl = document.getElementById("photoFrame");
+    const signatureFrameEl = document.getElementById("signatureFrame");
+    const photoPlaceholderEl = document.getElementById("photoPlaceholder");
+    const signatureHintEl = document.getElementById("signatureHint");
+    const photoMediaCardEl = document.getElementById("photoMediaCard");
+    const signatureMediaCardEl = document.getElementById("signatureMediaCard");
 
     const demandContracts = window.DemandeContracts || {};
     const stepMax = demandContracts.stepMax || 5;
@@ -70,20 +78,64 @@
         statusMessageEl.classList.toggle("ok", Boolean(isSuccess));
     }
 
-    function setPhotoStatus(message) {
+    function setPhotoStatus(message, isError) {
         if (!photoStatusEl) {
             return;
         }
 
         photoStatusEl.textContent = message || "";
+        photoStatusEl.classList.toggle("is-error", Boolean(isError));
+        photoStatusEl.classList.toggle("is-success", Boolean(message) && !isError);
     }
 
-    function setSignatureStatus(message) {
+    function setSignatureStatus(message, isError) {
         if (!signatureStatusEl) {
             return;
         }
 
         signatureStatusEl.textContent = message || "";
+        signatureStatusEl.classList.toggle("is-error", Boolean(isError));
+        signatureStatusEl.classList.toggle("is-success", Boolean(message) && !isError);
+    }
+
+    function updatePhotoBadge(text, state) {
+        if (!photoBadgeEl) {
+            return;
+        }
+        photoBadgeEl.textContent = text;
+        photoBadgeEl.classList.toggle("is-done", state === "done");
+        photoBadgeEl.classList.toggle("is-error", state === "error");
+    }
+
+    function updateSignatureBadge(text, state) {
+        if (!signatureBadgeEl) {
+            return;
+        }
+        signatureBadgeEl.textContent = text;
+        signatureBadgeEl.classList.toggle("is-done", state === "done");
+        signatureBadgeEl.classList.toggle("is-error", state === "error");
+    }
+
+    function syncPhotoButtonStates(mode) {
+        if (startCameraButton) {
+            startCameraButton.hidden = mode !== "idle";
+        }
+        if (capturePhotoButton) {
+            capturePhotoButton.hidden = mode !== "streaming";
+        }
+        if (retakePhotoButton) {
+            retakePhotoButton.hidden = mode !== "captured";
+        }
+        if (photoPlaceholderEl) {
+            photoPlaceholderEl.hidden = mode !== "idle";
+        }
+        if (photoFrameEl) {
+            photoFrameEl.classList.toggle("is-active", mode === "streaming");
+            photoFrameEl.classList.toggle("is-captured", mode === "captured");
+        }
+        if (photoMediaCardEl) {
+            photoMediaCardEl.classList.toggle("is-captured", mode === "captured");
+        }
     }
 
     function stopCamera() {
@@ -103,17 +155,21 @@
         setPhotoStatus("");
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } });
             requestDraft.photoSignature.stream = stream;
             photoVideo.srcObject = stream;
             photoVideo.hidden = false;
             if (photoCanvas) {
                 photoCanvas.hidden = true;
             }
-            setPhotoStatus("Camera active.");
+            syncPhotoButtonStates("streaming");
+            setPhotoStatus("Camera active — positionnez votre visage.");
+            updatePhotoBadge("Camera active", "");
         } catch (error) {
             requestDraft.photoSignature.cameraError = "Impossible d'acceder a la camera.";
-            setPhotoStatus(requestDraft.photoSignature.cameraError);
+            setPhotoStatus(requestDraft.photoSignature.cameraError, true);
+            updatePhotoBadge("Erreur", "error");
+            syncPhotoButtonStates("idle");
         }
     }
 
@@ -124,7 +180,9 @@
 
         photoVideo.hidden = true;
         canvas.hidden = false;
-        setPhotoStatus("Photo capturee.");
+        syncPhotoButtonStates("captured");
+        setPhotoStatus("Photo capturee avec succes.");
+        updatePhotoBadge("Terminee", "done");
     }
 
     function resetPhotoCapture() {
@@ -140,6 +198,7 @@
             photoVideo.hidden = false;
         }
         setPhotoStatus("");
+        updatePhotoBadge("En attente", "");
     }
 
     function resizeSignatureCanvas() {
@@ -174,6 +233,16 @@
         requestDraft.photoSignature.hasSignatureInk = false;
         requestDraft.photoSignature.signatureBlob = null;
         setSignatureStatus("");
+        updateSignatureBadge("En attente", "");
+        if (signatureFrameEl) {
+            signatureFrameEl.classList.remove("is-active");
+        }
+        if (signatureMediaCardEl) {
+            signatureMediaCardEl.classList.remove("is-signed");
+        }
+        if (signatureHintEl) {
+            signatureHintEl.hidden = false;
+        }
     }
 
     function isSignatureBlank() {
@@ -295,6 +364,12 @@
             const point = getPoint(event);
             lastX = point.x;
             lastY = point.y;
+            if (signatureFrameEl) {
+                signatureFrameEl.classList.add("is-active");
+            }
+            if (signatureHintEl) {
+                signatureHintEl.hidden = true;
+            }
             if (signatureCanvas.setPointerCapture) {
                 signatureCanvas.setPointerCapture(event.pointerId);
             }
@@ -323,6 +398,10 @@
             lastX = x;
             lastY = y;
             requestDraft.photoSignature.hasSignatureInk = true;
+            updateSignatureBadge("Terminee", "done");
+            if (signatureMediaCardEl) {
+                signatureMediaCardEl.classList.add("is-signed");
+            }
         }
 
         function stopDrawing(event) {
@@ -570,12 +649,35 @@
             if (photoVideo) {
                 photoVideo.hidden = true;
             }
+            if (photoPlaceholderEl) {
+                photoPlaceholderEl.hidden = true;
+            }
             if (photoCanvas) {
                 loadImageInCanvas(requestDraft.photoSignature.existingPhoto, photoCanvas);
             }
             if (signatureCanvas) {
                 loadImageInCanvas(requestDraft.photoSignature.existingSignature, signatureCanvas);
             }
+            if (signatureHintEl) {
+                signatureHintEl.hidden = true;
+            }
+            syncPhotoButtonStates("captured");
+            updatePhotoBadge("Terminee", "done");
+            updateSignatureBadge("Terminee", "done");
+            if (photoFrameEl) {
+                photoFrameEl.classList.add("is-captured");
+            }
+            if (signatureFrameEl) {
+                signatureFrameEl.classList.add("is-active");
+            }
+            if (photoMediaCardEl) {
+                photoMediaCardEl.classList.add("is-captured");
+            }
+            if (signatureMediaCardEl) {
+                signatureMediaCardEl.classList.add("is-signed");
+            }
+        } else {
+            syncPhotoButtonStates("idle");
         }
     }
 
@@ -1253,8 +1355,10 @@
         capturePhotoButton.addEventListener("click", async () => {
             try {
                 await getPhoto();
+                stopCamera();
             } catch (error) {
-                setPhotoStatus(error.message || "Impossible de capturer la photo.");
+                setPhotoStatus(error.message || "Impossible de capturer la photo.", true);
+                updatePhotoBadge("Erreur", "error");
             }
         });
     }

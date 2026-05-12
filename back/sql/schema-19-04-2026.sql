@@ -1,3 +1,8 @@
+DROP DATABASE gestion_visa;
+
+CREATE DATABASE gestion_visa;
+\c gestion_visa;
+
 CREATE TABLE
    type_visa (
       id_type_visa SERIAL,
